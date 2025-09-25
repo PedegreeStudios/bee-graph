@@ -1,0 +1,3 @@
+[submodule "textbooks/osbooks-biology-bundle"]
+	path = textbooks/osbooks-biology-bundle
+	url = https://github.com/openstax/osbooks-biology-bundle.git

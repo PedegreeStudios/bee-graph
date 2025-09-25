@@ -48,6 +48,20 @@ python scripts/setup_database.py --test
  Open in your browser: http://localhost:7474
 
 
+ ### 3. Load and Ingest OpenStax Textbooks 
+
+ #### Copy the link to the OpexStax Github Repository 
+
+ Navigate to https://github.com/openstax > Select your textbook > Click '<> Code' Green Button > Click 'HTTPS' > Copy link 
+
+ #### Run the command below 
+
+ ```bash 
+cd textbooks
+git submodule [link]
+ ```
+
+
 ## Project Structure
 ```
 bee-graph/
