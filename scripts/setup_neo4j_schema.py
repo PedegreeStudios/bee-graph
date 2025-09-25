@@ -13,10 +13,12 @@ Features:
 - Error handling and reporting
 
 Usage:
-    python setup_neo4j_schema.py --help
-    python setup_neo4j_schema.py --setup-schema
-    python setup_neo4j_schema.py --delete-schema
-    python setup_neo4j_schema.py --verify-schema
+    python scripts/setup_neo4j_schema.py --help
+    python scripts/setup_neo4j_schema.py --setup-schema --create-sample-data
+    python scripts/setup_neo4j_schema.py --reset-database --setup-schema --create-sample-data
+    python scripts/setup_neo4j_schema.py --clear-database
+    python scripts/setup_neo4j_schema.py --delete-schema
+    python scripts/setup_neo4j_schema.py --verify-schema
 """
 
 import sys
@@ -34,13 +36,18 @@ from neo4j_utils import Neo4jSchemaSetup
 @click.option('--username', default='', help='Neo4j username (optional for no-auth)')
 @click.option('--password', default='', help='Neo4j password (optional for no-auth)')
 @click.option('--database', default='neo4j', help='Database name')
-@click.option('--setup-schema', is_flag=True, help='Set up database schema (constraints and indexes)')
+@click.option('--setup-schema', is_flag=True, help='Set up complete database schema (constraints, indexes, and relationships)')
+@click.option('--create-sample-data', is_flag=True, help='Create sample nodes and relationships')
 @click.option('--delete-schema', is_flag=True, help='Delete all constraints and indexes from database')
+@click.option('--clear-database', is_flag=True, help='Clear all nodes and relationships from database')
+@click.option('--reset-database', is_flag=True, help='Reset entire database (clear data + delete schema)')
 @click.option('--verify-schema', is_flag=True, help='Verify schema setup')
 @click.option('--show-schema', is_flag=True, help='Show detailed schema information')
 @click.option('--test', is_flag=True, help='Test connection only')
 def main(uri: str, username: str, password: str, database: str,
-         setup_schema: bool, delete_schema: bool, verify_schema: bool, show_schema: bool, test: bool):
+         setup_schema: bool, create_sample_data: bool, 
+         delete_schema: bool, clear_database: bool, reset_database: bool,
+         verify_schema: bool, show_schema: bool, test: bool):
     """Set up Neo4j schema for OpenStax Knowledge Graph RAG System."""
     
     print("OPENSTAX KNOWLEDGE GRAPH - NEO4J SCHEMA SETUP")
@@ -58,14 +65,40 @@ def main(uri: str, username: str, password: str, database: str,
             print("Connection test successful!")
             return
         
-        # Set up schema if requested
+        # Reset database if requested (do this first)
+        if reset_database:
+            print(f"\nResetting database: {database}")
+            if not setup.reset_database():
+                return
+            print("Database reset completed successfully!")
+        
+        # Clear database if requested
+        if clear_database:
+            print(f"\nClearing database: {database}")
+            if not setup.clear_database():
+                return
+            print("Database clearing completed successfully!")
+        
+        # Set up complete schema if requested (constraints, indexes, and relationships)
         if setup_schema:
-            print(f"\nSetting up schema for database: {database}")
+            print(f"\nSetting up complete schema for database: {database}")
+            print("Creating constraints...")
             if not setup.setup_constraints():
                 return
+            print("Creating indexes...")
             if not setup.setup_indexes():
                return
-            print("Schema setup completed successfully!")
+            print("Creating relationships...")
+            if not setup.setup_relationships():
+                return
+            print("Complete schema setup finished successfully!")
+        
+        # Create sample data if requested
+        if create_sample_data:
+            print(f"\nCreating sample data for database: {database}")
+            if not setup.create_sample_data():
+                return
+            print("Sample data creation completed successfully!")
         
         # Delete schema if requested
         if delete_schema:
@@ -73,6 +106,13 @@ def main(uri: str, username: str, password: str, database: str,
             if not setup.delete_schema():
                 return
             print("Schema deletion completed successfully!")
+        
+        # Clear database if requested
+        if clear_database:
+            print(f"\nClearing database: {database}")
+            if not setup.clear_database():
+                return
+            print("Database clearing completed successfully!")
         
         # Verify schema if requested
         if verify_schema:
@@ -90,10 +130,13 @@ def main(uri: str, username: str, password: str, database: str,
             print(f"\nDetailed schema information for database: {database}")
             setup.show_schema_info()
         
-        if not any([setup_schema, delete_schema, verify_schema, show_schema]):
+        if not any([setup_schema, create_sample_data, delete_schema, clear_database, reset_database, verify_schema, show_schema]):
             print("\nNo schema operations specified.")
-            print("Use --setup-schema to create constraints and indexes")
+            print("Use --setup-schema to create complete schema (constraints, indexes, and relationships)")
+            print("Use --create-sample-data to create sample nodes and relationships")
             print("Use --delete-schema to remove all constraints and indexes")
+            print("Use --clear-database to remove all nodes and relationships")
+            print("Use --reset-database to clear data and delete schema (complete reset)")
             print("Use --verify-schema to check schema status")
             print("Use --show-schema to display detailed schema information")
         

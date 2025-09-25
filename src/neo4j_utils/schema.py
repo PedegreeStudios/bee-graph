@@ -15,6 +15,7 @@ Features:
 import json
 from pathlib import Path
 from typing import List, Dict, Any
+from datetime import datetime
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, AuthError
 
@@ -122,6 +123,30 @@ class Neo4jSchemaSetup:
             print(f"Error setting up indexes: {e}")
             return False
     
+    def setup_relationships(self) -> bool:
+        """Set up relationship hierarchies between nodes."""
+        try:
+            print("Creating relationship hierarchies...")
+            
+            with self.driver.session(database=self.database) as session:
+                relationships = self._get_relationships()
+                success_count = 0
+                
+                for relationship in relationships:
+                    try:
+                        session.run(relationship)
+                        print(f"   Created relationship: {relationship[:60]}...")
+                        success_count += 1
+                    except Exception as e:
+                        print(f"   Warning creating relationship: {e}")
+                
+                print(f"Relationships setup completed: {success_count}/{len(relationships)} created")
+                return True
+                
+        except Exception as e:
+            print(f"Error setting up relationships: {e}")
+            return False
+    
     def delete_schema(self) -> bool:
         """Delete all constraints and indexes from the database."""
         try:
@@ -165,6 +190,55 @@ class Neo4jSchemaSetup:
                 
         except Exception as e:
             print(f"Error deleting schema: {e}")
+            return False
+
+    def clear_database(self) -> bool:
+        """Clear all nodes and relationships from the database."""
+        try:
+            print("Clearing all data from database...")
+            
+            # Ensure connection is established
+            if self.driver is None:
+                self._connect()
+            
+            with self.driver.session(database=self.database) as session:
+                # Get counts before deletion
+                node_count_result = session.run("MATCH (n) RETURN count(n) as count")
+                node_count = node_count_result.single()["count"]
+                
+                rel_count_result = session.run("MATCH ()-[r]->() RETURN count(r) as count")
+                rel_count = rel_count_result.single()["count"]
+                
+                # Delete all nodes and relationships
+                session.run("MATCH (n) DETACH DELETE n")
+                
+                print(f"Database cleared:")
+                print(f"   Nodes deleted: {node_count}")
+                print(f"   Relationships deleted: {rel_count}")
+                return True
+                
+        except Exception as e:
+            print(f"Error clearing database: {e}")
+            return False
+
+    def reset_database(self) -> bool:
+        """Reset the entire database (clear data + delete schema)."""
+        try:
+            print("Resetting entire database...")
+            
+            # Clear all data first
+            if not self.clear_database():
+                return False
+            
+            # Then delete schema
+            if not self.delete_schema():
+                return False
+            
+            print("Database reset completed successfully!")
+            return True
+            
+        except Exception as e:
+            print(f"Error resetting database: {e}")
             return False
     
     def _get_constraints(self) -> List[str]:
@@ -224,9 +298,39 @@ class Neo4jSchemaSetup:
             "CREATE INDEX subsection_lens_index IF NOT EXISTS FOR (ss:Subsection) ON (ss.lens)",
             "CREATE INDEX paragraph_lens_index IF NOT EXISTS FOR (p:Paragraph) ON (p.lens)",
             "CREATE INDEX sentence_lens_index IF NOT EXISTS FOR (s:Sentence) ON (s.lens)",  
-            "CREATE INDEX concept_lens_index IF NOT EXISTS FOR (c:Concept) ON (c.lens)"
+             "CREATE INDEX concept_lens_index IF NOT EXISTS FOR (c:Concept) ON (c.lens)"
         ]
-        
+
+    def _get_relationships(self) -> List[str]:
+        """Get Cypher scripts for creating relationship hierarchies."""
+        return [
+            # Top-down CONTAINS relationships
+            "MATCH (b:Book), (c:Chapter) WHERE c.book_id = b.book_id CREATE (b)-[:BOOK_CONTAINS_CHAPTER]->(c)",
+            "MATCH (c:Chapter), (sc:Subchapter) WHERE sc.chapter_id = c.chapter_id CREATE (c)-[:CHAPTER_CONTAINS_SUBCHAPTER]->(sc)",
+            "MATCH (c:Chapter), (d:Document) WHERE d.chapter_id = c.chapter_id CREATE (c)-[:CHAPTER_CONTAINS_DOCUMENT]->(d)",
+            "MATCH (sc:Subchapter), (d:Document) WHERE d.subchapter_id = sc.subchapter_id CREATE (sc)-[:SUBCHAPTER_CONTAINS_DOCUMENT]->(d)",
+            "MATCH (d:Document), (s:Section) WHERE s.document_id = d.document_id CREATE (d)-[:DOCUMENT_CONTAINS_SECTION]->(s)",
+            "MATCH (d:Document), (p:Paragraph) WHERE p.document_id = d.document_id CREATE (d)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (s:Section), (ss:Subsection) WHERE ss.section_id = s.section_id CREATE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)",
+            "MATCH (s:Section), (p:Paragraph) WHERE p.section_id = s.section_id CREATE (s)-[:SECTION_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (ss:Subsection), (p:Paragraph) WHERE p.subsection_id = ss.subsection_id CREATE (ss)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (p:Paragraph), (sent:Sentence) WHERE sent.paragraph_id = p.paragraph_id CREATE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(sent)",
+            "MATCH (sent:Sentence), (c:Concept) WHERE sent.concept_id = c.concept_id CREATE (sent)-[:SENTENCE_CONTAINS_CONCEPT]->(c)",
+            
+            # Bottom-up BELONGS_TO relationships
+            "MATCH (c:Concept), (sent:Sentence) WHERE c.sentence_id = sent.sentence_id CREATE (c)-[:CONCEPT_BELONGS_TO_SENTENCE]->(sent)",
+            "MATCH (sent:Sentence), (p:Paragraph) WHERE sent.paragraph_id = p.paragraph_id CREATE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)",
+            "MATCH (p:Paragraph), (ss:Subsection) WHERE p.subsection_id = ss.subsection_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)",
+            "MATCH (p:Paragraph), (s:Section) WHERE p.section_id = s.section_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(s)",
+            "MATCH (p:Paragraph), (d:Document) WHERE p.document_id = d.document_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_DOCUMENT]->(d)",
+            "MATCH (ss:Subsection), (s:Section) WHERE ss.section_id = s.section_id CREATE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)",
+            "MATCH (s:Section), (d:Document) WHERE s.document_id = d.document_id CREATE (s)-[:SECTION_BELONGS_TO_DOCUMENT]->(d)",
+            "MATCH (d:Document), (sc:Subchapter) WHERE d.subchapter_id = sc.subchapter_id CREATE (d)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc)",
+            "MATCH (d:Document), (c:Chapter) WHERE d.chapter_id = c.chapter_id CREATE (d)-[:DOCUMENT_BELONGS_TO_CHAPTER]->(c)",
+            "MATCH (sc:Subchapter), (c:Chapter) WHERE sc.chapter_id = c.chapter_id CREATE (sc)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c)",
+            "MATCH (c:Chapter), (b:Book) WHERE c.book_id = b.book_id CREATE (c)-[:CHAPTER_BELONGS_TO_BOOK]->(b)"
+        ]
+
     def verify_schema(self) -> Dict[str, Any]:
         """Verify that the schema was created successfully."""
         try:
@@ -285,6 +389,173 @@ class Neo4jSchemaSetup:
                 
         except Exception as e:
             print(f"Error showing schema info: {e}")
+    
+    def create_sample_data(self) -> bool:
+        """Create sample nodes and relationships for testing."""
+        try:
+            from .nodes import Neo4jNodeCreator
+            from .relationships import Neo4jRelationshipCreator
+            
+            # Initialize creators
+            node_creator = Neo4jNodeCreator(self.uri, self.username, self.password, self.database)
+            rel_creator = Neo4jRelationshipCreator(self.uri, self.username, self.password, self.database)
+            
+            # Ensure connections are established
+            node_creator._connect()
+            rel_creator._connect()
+            
+            # Sample data
+            current_time = datetime.now().isoformat()
+            
+            # Create sample book
+            book_data = {
+                "book_id": "bio-2e-sample",
+                "title": "Biology 2e Sample",
+                "uuid": "book-uuid-001",
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_book(book_data):
+                return False
+            
+            # Create sample chapter
+            chapter_data = {
+                "chapter_id": "ch01-sample",
+                "book_id": "bio-2e-sample",
+                "title": "Introduction to Biology",
+                "uuid": "chapter-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_chapter(chapter_data):
+                return False
+            
+            # Create sample subchapter
+            subchapter_data = {
+                "subchapter_id": "sc01-01-sample",
+                "chapter_id": "ch01-sample",
+                "title": "What is Biology?",
+                "uuid": "subchapter-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_subchapter(subchapter_data):
+                return False
+            
+            # Create sample document
+            document_data = {
+                "document_id": "doc01-sample",
+                "book_id": "bio-2e-sample",
+                "title": "Biology Introduction Document",
+                "uuid": "document-uuid-001",
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_document(document_data):
+                return False
+            
+            # Create sample section
+            section_data = {
+                "section_id": "sec01-sample",
+                "subchapter_id": "sc01-01-sample",
+                "document_id": "doc01-sample",
+                "title": "Definition of Biology",
+                "uuid": "section-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_section(section_data):
+                return False
+            
+            # Create sample subsection
+            subsection_data = {
+                "subsection_id": "subsec01-sample",
+                "section_id": "sec01-sample",
+                "title": "Scientific Study of Life",
+                "uuid": "subsection-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_subsection(subsection_data):
+                return False
+            
+            # Create sample paragraph
+            paragraph_data = {
+                "paragraph_id": "para01-sample",
+                "subsection_id": "subsec01-sample",
+                "text": "Biology is the scientific study of life. It encompasses all living organisms and their interactions with the environment.",
+                "uuid": "paragraph-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_paragraph(paragraph_data):
+                return False
+            
+            # Create sample sentence
+            sentence_data = {
+                "sentence_id": "sent01-sample",
+                "paragraph_id": "para01-sample",
+                "text": "Biology is the scientific study of life.",
+                "uuid": "sentence-uuid-001",
+                "order": 1,
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_sentence(sentence_data):
+                return False
+            
+            # Create sample concept
+            concept_data = {
+                "concept_id": "concept01-sample",
+                "text": "biology",
+                "wikidata_id": "Q420",
+                "wikidata_name": "Biology",
+                "uuid": "concept-uuid-001",
+                "lens": "biology",
+                "created_at": current_time
+            }
+            if not node_creator.create_concept(concept_data):
+                return False
+            
+            # Create relationships
+            print("Creating relationships...")
+            
+            # Top-down relationships
+            rel_creator.create_book_contains_chapter_relationship("bio-2e-sample", "ch01-sample")
+            rel_creator.create_chapter_contains_subchapter_relationship("ch01-sample", "sc01-01-sample")
+            rel_creator.create_chapter_contains_document_relationship("ch01-sample", "doc01-sample")
+            rel_creator.create_subchapter_contains_document_relationship("sc01-01-sample", "doc01-sample")
+            rel_creator.create_document_contains_section_relationship("doc01-sample", "sec01-sample")
+            rel_creator.create_section_contains_subsection_relationship("sec01-sample", "subsec01-sample")
+            rel_creator.create_subsection_contains_paragraph_relationship("subsec01-sample", "para01-sample")
+            rel_creator.create_paragraph_contains_sentence_relationship("para01-sample", "sent01-sample")
+            rel_creator.create_sentence_contains_concept_relationship("sent01-sample", "concept01-sample")
+            
+            # Bottom-up relationships
+            rel_creator.create_concept_belongs_to_sentence_relationship("concept01-sample", "sent01-sample")
+            rel_creator.create_sentence_belongs_paragraph_relationship("sent01-sample", "para01-sample")
+            rel_creator.create_paragraph_belongs_to_subsection_relationship("para01-sample", "subsec01-sample")
+            rel_creator.create_subsection_belongs_to_section_relationship("subsec01-sample", "sec01-sample")
+            rel_creator.create_section_belongs_to_document_relationship("sec01-sample", "doc01-sample")
+            rel_creator.create_document_belongs_to_subchapter_relationship("doc01-sample", "sc01-01-sample")
+            rel_creator.create_document_belongs_to_chapter_relationship("doc01-sample", "ch01-sample")
+            rel_creator.create_subchapter_belongs_to_chapter_relationship("sc01-01-sample", "ch01-sample")
+            rel_creator.create_chapter_belongs_to_book_relationship("ch01-sample", "bio-2e-sample")
+            
+            # Close connections
+            node_creator.close()
+            rel_creator.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error creating sample data: {e}")
+            return False
     
     def close(self) -> None:
         """Close the database connection."""

@@ -63,10 +63,57 @@ git submodule [link]
 
 
 ## Project Structure
-```
+```bash
 bee-graph/
 ├── config/              # Configuration files
 ├── scripts/             # Setup and utility scripts
 ├── src/                 # Source code
 └── requirements.txt     # Python dependencies
+```
+
+##Textbook Hierarchy 
+
+```mermaid
+graph TD
+    %% Node Types
+    Book[Book]
+    Chapter[Chapter]
+    Subchapter[Subchapter]
+    Document[Document]
+    Section[Section]
+    Subsection[Subsection]
+    Paragraph[Paragraph]
+    Sentence[Sentence]
+    Concept[Concept]
+
+    %% Top-Down CONTAINS Relationships
+    Book -->|BOOK_CONTAINS_CHAPTER| Chapter
+    Chapter -->|CHAPTER_CONTAINS_SUBCHAPTER| Subchapter
+    Chapter -->|CHAPTER_CONTAINS_DOCUMENT| Document
+    Subchapter -->|SUBCHAPTER_CONTAINS_DOCUMENT| Document
+    Document -->|DOCUMENT_CONTAINS_SECTION| Section
+    Document -->|DOCUMENT_CONTAINS_PARAGRAPH| Paragraph
+    Section -->|SECTION_CONTAINS_SUBSECTION| Subsection
+    Section -->|SECTION_CONTAINS_PARAGRAPH| Paragraph
+    Subsection -->|SUBSECTION_CONTAINS_PARAGRAPH| Paragraph
+    Paragraph -->|PARAGRAPH_CONTAINS_SENTENCE| Sentence
+    Sentence -->|SENTENCE_CONTAINS_CONCEPT| Concept
+
+    %% Bottom-Up BELONGS_TO Relationships
+    Concept -.->|CONCEPT_BELONGS_TO_SENTENCE| Sentence
+    Sentence -.->|SENTENCE_BELONGS_TO_PARAGRAPH| Paragraph
+    Paragraph -.->|PARAGRAPH_BELONGS_TO_SUBSECTION| Subsection
+    Paragraph -.->|PARAGRAPH_BELONGS_TO_SECTION| Section
+    Paragraph -.->|PARAGRAPH_BELONGS_TO_DOCUMENT| Document
+    Subsection -.->|SUBSECTION_BELONGS_TO_SECTION| Section
+    Section -.->|SECTION_BELONGS_TO_DOCUMENT| Document
+    Document -.->|DOCUMENT_BELONGS_TO_SUBCHAPTER| Subchapter
+    Document -.->|DOCUMENT_BELONGS_TO_CHAPTER| Chapter
+    Subchapter -.->|SUBCHAPTER_BELONGS_TO_CHAPTER| Chapter
+    Chapter -.->|CHAPTER_BELONGS_TO_BOOK| Book
+
+    %% Styling
+    classDef nodeType fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+
+    class Book,Chapter,Subchapter,Document,Section,Subsection,Paragraph,Sentence,Concept nodeType
 ```
