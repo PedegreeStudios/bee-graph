@@ -7,7 +7,7 @@ A Neo4j-based knowledge graph system to query content in OpenStax textbooks usin
 ### 1. Prerequisites
 - [Python 3.8+](https://www.python.org/) installed 
 - [Docker Desktop](https://www.docker.com/) installed and running
-- Git (optional)
+- Git 
 
 ### 2. Setup Database
 Docker provides a consistent and portable environment for running applications. Neo4j is a graph database optimized for connected data. Using Docker with Neo4j makes it easy to set up, run, and scale graph databases reliably across environments.
@@ -54,12 +54,19 @@ python scripts/setup_database.py --test
 
  Navigate to https://github.com/openstax > Select your textbook > Click '<> Code' Green Button > Click 'HTTPS' > Copy link 
 
- #### Run the command below 
+ #### Run the command below to load the textbook 
 
  ```bash 
 cd textbooks
 git submodule [link]
  ```
+
+ #### Setup Database Nodes and Relationships with Sample Data
+
+```bash
+ python scripts/setup_neo4j_schema.py --setup-schema --create-sample-data
+ ```
+
 
 
 ## Project Structure
