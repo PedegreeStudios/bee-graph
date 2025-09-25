@@ -1322,13 +1322,7 @@ class OpenStaxXMLParser:
                                     # Update document metadata - this should happen regardless of dry_run
                                     if document_update.get('title'):
                                         if not dry_run:
-                                            success = self.update_document_in_neo4j(document_update)
-                                            if success:
-                                                print(f"    Updated document title: {document_update['document_id']} -> {document_update['title']}")
-                                            else:
-                                                print(f"    Failed to update document title: {document_update['document_id']}")
-                                        else:
-                                            print(f"    Would update document title: {document_update['document_id']} -> {document_update['title']}")
+                                            self.update_document_in_neo4j(document_update)
                             
                             processed_modules += 1
                             pbar.update(1)
