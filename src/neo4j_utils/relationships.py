@@ -60,7 +60,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (b:Book {book_id: $source_id}), (c:Chapter {chapter_id: $target_id})
-                CREATE (b)-[:BOOK_CONTAINS_CHAPTER]->(c)
+                MERGE (b)-[:BOOK_CONTAINS_CHAPTER]->(c)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created BOOK_CONTAINS_CHAPTER: {source_id} -> {target_id}")
@@ -76,7 +76,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (c:Chapter {chapter_id: $source_id}), (sc:Subchapter {subchapter_id: $target_id})
-                CREATE (c)-[:CHAPTER_CONTAINS_SUBCHAPTER]->(sc)
+                MERGE (c)-[:CHAPTER_CONTAINS_SUBCHAPTER]->(sc)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created CHAPTER_CONTAINS_SUBCHAPTER: {source_id} -> {target_id}")
@@ -92,7 +92,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (c:Chapter {chapter_id: $source_id}), (d:Document {document_id: $target_id})
-                CREATE (c)-[:CHAPTER_CONTAINS_DOCUMENT]->(d)
+                MERGE (c)-[:CHAPTER_CONTAINS_DOCUMENT]->(d)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created CHAPTER_CONTAINS_DOCUMENT: {source_id} -> {target_id}")
@@ -108,7 +108,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (sc:Subchapter {subchapter_id: $source_id}), (d:Document {document_id: $target_id})
-                CREATE (sc)-[:SUBCHAPTER_CONTAINS_DOCUMENT]->(d)
+                MERGE (sc)-[:SUBCHAPTER_CONTAINS_DOCUMENT]->(d)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SUBCHAPTER_CONTAINS_DOCUMENT: {source_id} -> {target_id}")
@@ -124,7 +124,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (d:Document {document_id: $source_id}), (s:Section {section_id: $target_id})
-                CREATE (d)-[:DOCUMENT_CONTAINS_SECTION]->(s)
+                MERGE (d)-[:DOCUMENT_CONTAINS_SECTION]->(s)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created DOCUMENT_CONTAINS_SECTION: {source_id} -> {target_id}")
@@ -140,7 +140,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (d:Document {document_id: $source_id}), (p:Paragraph {paragraph_id: $target_id})
-                CREATE (d)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p)
+                MERGE (d)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created DOCUMENT_CONTAINS_PARAGRAPH: {source_id} -> {target_id}")
@@ -156,7 +156,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (s:Section {section_id: $source_id}), (ss:Subsection {subsection_id: $target_id})
-                CREATE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)
+                MERGE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SECTION_CONTAINS_SUBSECTION: {source_id} -> {target_id}")
@@ -172,7 +172,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (s:Section {section_id: $source_id}), (p:Paragraph {paragraph_id: $target_id})
-                CREATE (s)-[:SECTION_CONTAINS_PARAGRAPH]->(p)
+                MERGE (s)-[:SECTION_CONTAINS_PARAGRAPH]->(p)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SECTION_CONTAINS_PARAGRAPH: {source_id} -> {target_id}")
@@ -188,7 +188,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (ss:Subsection {subsection_id: $source_id}), (p:Paragraph {paragraph_id: $target_id})
-                CREATE (ss)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p)
+                MERGE (ss)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SUBSECTION_CONTAINS_PARAGRAPH: {source_id} -> {target_id}")
@@ -204,7 +204,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (p:Paragraph {paragraph_id: $source_id}), (sent:Sentence {sentence_id: $target_id})
-                CREATE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(sent)
+                MERGE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(sent)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created PARAGRAPH_CONTAINS_SENTENCE: {source_id} -> {target_id}")
@@ -220,7 +220,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (sent:Sentence {sentence_id: $source_id}), (c:Concept {concept_id: $target_id})
-                CREATE (sent)-[:SENTENCE_CONTAINS_CONCEPT]->(c)
+                MERGE (sent)-[:SENTENCE_CONTAINS_CONCEPT]->(c)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SENTENCE_CONTAINS_CONCEPT: {source_id} -> {target_id}")
@@ -237,7 +237,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (c:Concept {concept_id: $source_id}), (sent:Sentence {sentence_id: $target_id})
-                CREATE (c)-[:CONCEPT_BELONGS_TO_SENTENCE]->(sent)
+                MERGE (c)-[:CONCEPT_BELONGS_TO_SENTENCE]->(sent)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created CONCEPT_BELONGS_TO_SENTENCE: {source_id} -> {target_id}")
@@ -253,7 +253,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (sent:Sentence {sentence_id: $source_id}), (p:Paragraph {paragraph_id: $target_id})
-                CREATE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)
+                MERGE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SENTENCE_BELONGS_TO_PARAGRAPH: {source_id} -> {target_id}")
@@ -269,7 +269,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (p:Paragraph {paragraph_id: $source_id}), (ss:Subsection {subsection_id: $target_id})
-                CREATE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)
+                MERGE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created PARAGRAPH_BELONGS_TO_SUBSECTION: {source_id} -> {target_id}")
@@ -286,7 +286,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (p:Paragraph {paragraph_id: $source_id}), (s:Section {section_id: $target_id})
-                CREATE (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(s)
+                MERGE (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(s)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created PARAGRAPH_BELONGS_TO_SECTION: {source_id} -> {target_id}")
@@ -302,7 +302,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (ss:Subsection {subsection_id: $source_id}), (s:Section {section_id: $target_id})
-                CREATE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)
+                MERGE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SUBSECTION_BELONGS_TO_SECTION: {source_id} -> {target_id}")
@@ -319,7 +319,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (s:Section {section_id: $source_id}), (d:Document {document_id: $target_id})
-                CREATE (s)-[:SECTION_BELONGS_TO_DOCUMENT]->(d)
+                MERGE (s)-[:SECTION_BELONGS_TO_DOCUMENT]->(d)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SECTION_BELONGS_TO_DOCUMENT: {source_id} -> {target_id}")
@@ -336,7 +336,7 @@ class Neo4jRelationshipCreator:
             with self.driver.session(database=self.database) as session:
                 query = """
                 MATCH (p:Paragraph {paragraph_id: $source_id}), (d:Document {document_id: $target_id})
-                CREATE (p)-[:PARAGRAPH_BELONGS_TO_DOCUMENT]->(d)
+                MERGE (p)-[:PARAGRAPH_BELONGS_TO_DOCUMENT]->(d)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created PARAGRAPH_BELONGS_TO_DOCUMENT: {source_id} -> {target_id}")
@@ -352,8 +352,9 @@ class Neo4jRelationshipCreator:
             self._connect()
             with self.driver.session(database=self.database) as session:
                 query = """
-                MATCH (d:Document {document_id: $source_id}), (sc:Subchapter {subchapter_id: $target_id})
-                CREATE (d)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc)
+                MATCH (d:Document {document_id: $source_id})
+                MATCH (sc:Subchapter {subchapter_id: $target_id})
+                MERGE (d)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created DOCUMENT_BELONGS_TO_SUBCHAPTER: {source_id} -> {target_id}")
@@ -370,8 +371,9 @@ class Neo4jRelationshipCreator:
             self._connect()
             with self.driver.session(database=self.database) as session:
                 query = """
-                MATCH (d:Document {document_id: $source_id}), (c:Chapter {chapter_id: $target_id})
-                CREATE (d)-[:DOCUMENT_BELONGS_TO_CHAPTER]->(c)
+                MATCH (d:Document {document_id: $source_id})
+                MATCH (c:Chapter {chapter_id: $target_id})
+                MERGE (d)-[:DOCUMENT_BELONGS_TO_CHAPTER]->(c)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created DOCUMENT_BELONGS_TO_CHAPTER: {source_id} -> {target_id}")
@@ -387,8 +389,9 @@ class Neo4jRelationshipCreator:
             self._connect()
             with self.driver.session(database=self.database) as session:
                 query = """
-                MATCH (sc:Subchapter {subchapter_id: $source_id}), (c:Chapter {chapter_id: $target_id})
-                CREATE (sc)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c)
+                MATCH (sc:Subchapter {subchapter_id: $source_id})
+                MATCH (c:Chapter {chapter_id: $target_id})
+                MERGE (sc)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created SUBCHAPTER_BELONGS_TO_CHAPTER: {source_id} -> {target_id}")
@@ -404,8 +407,9 @@ class Neo4jRelationshipCreator:
             self._connect()
             with self.driver.session(database=self.database) as session:
                 query = """
-                MATCH (c:Chapter {chapter_id: $source_id}), (b:Book {book_id: $target_id})
-                CREATE (c)-[:CHAPTER_BELONGS_TO_BOOK]->(b)
+                MATCH (c:Chapter {chapter_id: $source_id})
+                MATCH (b:Book {book_id: $target_id})
+                MERGE (c)-[:CHAPTER_BELONGS_TO_BOOK]->(b)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created CHAPTER_BELONGS_TO_BOOK: {source_id} -> {target_id}")
@@ -423,7 +427,7 @@ class Neo4jRelationshipCreator:
                 query = f"""
                 MATCH (source:{source_label} {{{source_label.lower()}_id: $source_id}}), 
                       (target:{target_label} {{{target_label.lower()}_id: $target_id}})
-                CREATE (source)-[:CONTAINS]->(target)
+                MERGE (source)-[:CONTAINS]->(target)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created CONTAINS: {source_label}({source_id}) -> {target_label}({target_id})")
@@ -441,7 +445,7 @@ class Neo4jRelationshipCreator:
                 query = f"""
                 MATCH (source:{source_label} {{{source_label.lower()}_id: $source_id}}), 
                       (target:{target_label} {{{target_label.lower()}_id: $target_id}})
-                CREATE (source)-[:BELONGS_TO]->(target)
+                MERGE (source)-[:BELONGS_TO]->(target)
                 """
                 session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
                 print(f"Created BELONGS_TO: {source_label}({source_id}) -> {target_label}({target_id})")

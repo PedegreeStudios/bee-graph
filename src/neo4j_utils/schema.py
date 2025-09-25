@@ -305,30 +305,34 @@ class Neo4jSchemaSetup:
         """Get Cypher scripts for creating relationship hierarchies."""
         return [
             # Top-down CONTAINS relationships
-            "MATCH (b:Book), (c:Chapter) WHERE c.book_id = b.book_id CREATE (b)-[:BOOK_CONTAINS_CHAPTER]->(c)",
-            "MATCH (c:Chapter), (sc:Subchapter) WHERE sc.chapter_id = c.chapter_id CREATE (c)-[:CHAPTER_CONTAINS_SUBCHAPTER]->(sc)",
-            "MATCH (c:Chapter), (d:Document) WHERE d.chapter_id = c.chapter_id CREATE (c)-[:CHAPTER_CONTAINS_DOCUMENT]->(d)",
-            "MATCH (sc:Subchapter), (d:Document) WHERE d.subchapter_id = sc.subchapter_id CREATE (sc)-[:SUBCHAPTER_CONTAINS_DOCUMENT]->(d)",
-            "MATCH (d:Document), (s:Section) WHERE s.document_id = d.document_id CREATE (d)-[:DOCUMENT_CONTAINS_SECTION]->(s)",
-            "MATCH (d:Document), (p:Paragraph) WHERE p.document_id = d.document_id CREATE (d)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p)",
-            "MATCH (s:Section), (ss:Subsection) WHERE ss.section_id = s.section_id CREATE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)",
-            "MATCH (s:Section), (p:Paragraph) WHERE p.section_id = s.section_id CREATE (s)-[:SECTION_CONTAINS_PARAGRAPH]->(p)",
-            "MATCH (ss:Subsection), (p:Paragraph) WHERE p.subsection_id = ss.subsection_id CREATE (ss)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p)",
-            "MATCH (p:Paragraph), (sent:Sentence) WHERE sent.paragraph_id = p.paragraph_id CREATE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(sent)",
-            "MATCH (sent:Sentence), (c:Concept) WHERE sent.concept_id = c.concept_id CREATE (sent)-[:SENTENCE_CONTAINS_CONCEPT]->(c)",
+            "MATCH (b:Book), (c:Chapter) WHERE c.book_id = b.book_id MERGE (b)-[:BOOK_CONTAINS_CHAPTER]->(c)",
+            "MATCH (c:Chapter), (sc:Subchapter) WHERE sc.chapter_id = c.chapter_id MERGE (c)-[:CHAPTER_CONTAINS_SUBCHAPTER]->(sc)",
+            "MATCH (c:Chapter), (d:Document) WHERE d.chapter_id = c.chapter_id MERGE (c)-[:CHAPTER_CONTAINS_DOCUMENT]->(d)",
+            "MATCH (sc:Subchapter), (d:Document) WHERE d.subchapter_id = sc.subchapter_id MERGE (sc)-[:SUBCHAPTER_CONTAINS_DOCUMENT]->(d)",
+            "MATCH (d:Document), (s:Section) WHERE s.document_id = d.document_id MERGE (d)-[:DOCUMENT_CONTAINS_SECTION]->(s)",
+            "MATCH (d:Document), (p:Paragraph) WHERE p.document_id = d.document_id MERGE (d)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (s:Section), (ss:Subsection) WHERE ss.section_id = s.section_id MERGE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)",
+            "MATCH (s:Section), (p:Paragraph) WHERE p.section_id = s.section_id MERGE (s)-[:SECTION_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (ss:Subsection), (p:Paragraph) WHERE p.subsection_id = ss.subsection_id MERGE (ss)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p)",
+            "MATCH (p:Paragraph), (sent:Sentence) WHERE sent.paragraph_id = p.paragraph_id MERGE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(sent)",
+            # Note: SENTENCE_CONTAINS_CONCEPT relationships are created during data import
+            # when concepts are extracted from sentences, not through schema setup
             
             # Bottom-up BELONGS_TO relationships
-            "MATCH (c:Concept), (sent:Sentence) WHERE c.sentence_id = sent.sentence_id CREATE (c)-[:CONCEPT_BELONGS_TO_SENTENCE]->(sent)",
-            "MATCH (sent:Sentence), (p:Paragraph) WHERE sent.paragraph_id = p.paragraph_id CREATE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)",
-            "MATCH (p:Paragraph), (ss:Subsection) WHERE p.subsection_id = ss.subsection_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)",
-            "MATCH (p:Paragraph), (s:Section) WHERE p.section_id = s.section_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(s)",
-            "MATCH (p:Paragraph), (d:Document) WHERE p.document_id = d.document_id CREATE (p)-[:PARAGRAPH_BELONGS_TO_DOCUMENT]->(d)",
-            "MATCH (ss:Subsection), (s:Section) WHERE ss.section_id = s.section_id CREATE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)",
-            "MATCH (s:Section), (d:Document) WHERE s.document_id = d.document_id CREATE (s)-[:SECTION_BELONGS_TO_DOCUMENT]->(d)",
-            "MATCH (d:Document), (sc:Subchapter) WHERE d.subchapter_id = sc.subchapter_id CREATE (d)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc)",
-            "MATCH (d:Document), (c:Chapter) WHERE d.chapter_id = c.chapter_id CREATE (d)-[:DOCUMENT_BELONGS_TO_CHAPTER]->(c)",
-            "MATCH (sc:Subchapter), (c:Chapter) WHERE sc.chapter_id = c.chapter_id CREATE (sc)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c)",
-            "MATCH (c:Chapter), (b:Book) WHERE c.book_id = b.book_id CREATE (c)-[:CHAPTER_BELONGS_TO_BOOK]->(b)"
+            # Note: CONCEPT_BELONGS_TO_SENTENCE relationships are created during data import
+            # when concepts are extracted from sentences, not through schema setup
+            "MATCH (sent:Sentence), (p:Paragraph) WHERE sent.paragraph_id = p.paragraph_id MERGE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)",
+            "MATCH (p:Paragraph), (ss:Subsection) WHERE p.subsection_id = ss.subsection_id MERGE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)",
+            # Note: PARAGRAPH_BELONGS_TO_SECTION and PARAGRAPH_BELONGS_TO_DOCUMENT relationships
+            # are created during data import based on the hierarchical structure,
+            # not through schema setup with field matching
+            "MATCH (ss:Subsection), (s:Section) WHERE ss.section_id = s.section_id MERGE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)",
+            "MATCH (s:Section), (d:Document) WHERE s.document_id = d.document_id MERGE (s)-[:SECTION_BELONGS_TO_DOCUMENT]->(d)",
+            # Note: DOCUMENT_BELONGS_TO_SUBCHAPTER and DOCUMENT_BELONGS_TO_CHAPTER relationships
+            # are created during data import based on the hierarchical structure,
+            # not through schema setup with field matching
+            "MATCH (sc:Subchapter), (c:Chapter) WHERE sc.chapter_id = c.chapter_id MERGE (sc)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c)",
+            "MATCH (c:Chapter), (b:Book) WHERE c.book_id = b.book_id MERGE (c)-[:CHAPTER_BELONGS_TO_BOOK]->(b)"
         ]
 
     def verify_schema(self) -> Dict[str, Any]:

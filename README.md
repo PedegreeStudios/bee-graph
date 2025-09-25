@@ -61,13 +61,20 @@ cd textbooks
 git submodule [link]
  ```
 
- #### Setup Database Nodes and Relationships with Sample Data
+ #### Setup Database Nodes and Relationships
 
 ```bash
- python scripts/setup_neo4j_schema.py --setup-schema --create-sample-data
+ python scripts/setup_neo4j_schema.py --setup-schema
  ```
 
+#### Import Your Textbook 
 
+```bash 
+python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import
+
+#if you need to reimport and delete the database, please run (be careful): 
+python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
+```
 
 ## Project Structure
 ```bash
