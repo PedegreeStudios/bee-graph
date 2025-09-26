@@ -1,0 +1,19 @@
+{
+  "azure_models": {
+    "gpt-4o-mini": {
+      "model_name": "gpt-4o-mini",
+      "api_base": "https://bio-rag-ai-service083455206435.openai.azure.com/",
+      "deployment_name": "gpt-4o-mini",
+      "api_key": "jrJQyevFPm59frUUTxMqtYQrYf4bf288UE03TpPSxDzwVsMMHGzgJQQJ99BCACYeBjFXJ3w3AAAAACOGfG2s",
+      "api_version": "2024-12-01-preview"
+    },
+    "Phi-4-mini-reasoning": {
+      "model_name": "Phi-4-mini-reasoning",
+      "api_base": "https://bio-rag-ai-service083455206435.services.ai.azure.com/models",
+      "api_key": "jrJQyevFPm59frUUTxMqtYQrYf4bf288UE03TpPSxDzwVsMMHGzgJQQJ99BCACYeBjFXJ3w3AAAAACOGfG2s",
+      "api_version": "2024-05-01-preview", 
+      "model_provider": "azure", 
+      "deployment_name": "Phi-4-mini-reasoning"
+    }
+  }
+}
