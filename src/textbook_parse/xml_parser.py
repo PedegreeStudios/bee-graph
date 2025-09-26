@@ -888,7 +888,7 @@ class OpenStaxXMLParser:
                 # Create namespaced section ID
                 namespaced_section_id = f"{book_id}_{section_id}"
                 
-                section_data = {
+                section_node_data = {
                     'section_id': namespaced_section_id,
                     'subchapter_id': None,  # Will be set based on hierarchy
                     'document_id': namespaced_document_id,
@@ -898,7 +898,7 @@ class OpenStaxXMLParser:
                     'lens': 'structural',
                     'created_at': datetime.now().isoformat()
                 }
-                nodes.append(('Section', section_data))
+                nodes.append(('Section', section_node_data))
                 # Create DOCUMENT_CONTAINS_SECTION relationship using namespaced IDs
                 # logger.info(f"Creating DOCUMENT_CONTAINS_SECTION: document_id='{namespaced_document_id}' -> section_id='{namespaced_section_id}'")
                 relationships.append(('DOCUMENT_CONTAINS_SECTION', namespaced_document_id, namespaced_section_id))
