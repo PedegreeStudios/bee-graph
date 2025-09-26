@@ -4,3 +4,12 @@
 [submodule "textbooks/osbooks-chemistry-bundle"]
 	path = textbooks/osbooks-chemistry-bundle
 	url = https://github.com/openstax/osbooks-chemistry-bundle.git
+[submodule "textbooks/osbooks-anatomy-physiology"]
+	path = textbooks/osbooks-anatomy-physiology
+	url = https://github.com/openstax/osbooks-anatomy-physiology.git
+[submodule "textbooks/osbooks-university-physics-bundle"]
+	path = textbooks/osbooks-university-physics-bundle
+	url = https://github.com/openstax/osbooks-university-physics-bundle.git
+[submodule "textbooks/osbooks-organic-chemistry"]
+	path = textbooks/osbooks-organic-chemistry
+	url = https://github.com/openstax/osbooks-organic-chemistry.git

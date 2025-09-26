@@ -947,6 +947,7 @@ class OpenStaxXMLParser:
                                 
                                 paragraph_data = {
                                     'paragraph_id': namespaced_paragraph_id,
+                                    'section_id': namespaced_section_id,  # Set section_id for subsection paragraphs
                                     'subsection_id': namespaced_subsection_id,
                                     'text': subsection_content['text'],
                                     'uuid': '',
@@ -982,6 +983,7 @@ class OpenStaxXMLParser:
                         
                         paragraph_data = {
                             'paragraph_id': namespaced_paragraph_id,
+                            'section_id': namespaced_section_id,  # Set section_id for direct section paragraphs
                             'subsection_id': None,  # Will be set based on hierarchy
                             'text': content_item['text'],
                             'uuid': '',
@@ -1032,6 +1034,7 @@ class OpenStaxXMLParser:
                 
                 paragraph_data = {
                     'paragraph_id': namespaced_paragraph_id,
+                    'section_id': None,  # Standalone document paragraphs don't belong to a section
                     'subsection_id': None,  # Will be set based on hierarchy
                     'text': section_data['text'],
                     'uuid': '',

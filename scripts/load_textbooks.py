@@ -20,7 +20,7 @@ FEATURES:
 
 Usage:
     # Load all collections (default behavior)
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --batch-size 2000
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --batch-size 2000 --extract-concepts
     
     # Load specific collection
     python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e.collection
@@ -42,12 +42,15 @@ from typing import Optional, List, Dict, Any
 import click
 import logging
 from tqdm import tqdm
+import time
+from datetime import datetime, timedelta
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from textbook_parse.xml_parser import OpenStaxXMLParser
 from textbook_parse.bulk_import import create_bulk_importer
+from textbook_parse.concept_extraction.main import ConceptExtractionSystem
 from neo4j_utils import Neo4jSchemaSetup, Neo4jNodeCreator, Neo4jRelationshipCreator
 from neo4j import GraphDatabase
 
@@ -140,8 +143,9 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.option('--cleanup', is_flag=True, help='Clean up existing data (sample data and textbooks) before import')
 @click.option('--full-cleanup', is_flag=True, help='Completely clear the entire database before import (removes all nodes and relationships)')
 @click.option('--force', is_flag=True, help='Force loading even if collections already exist')
+@click.option('--extract-concepts', is_flag=True, help='Extract concepts after loading textbook content')
 def main(textbook_path: str, collection: str, uri: str, username: str, password: str, database: str,
-         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool):
+         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool):
     """Load OpenStax textbook content into Neo4j database using XML parser.
     
     This script parses OpenStax textbook XML files and loads the content into a Neo4j database.
@@ -165,8 +169,13 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
     """
     
+    # Record start time
+    start_time = time.time()
+    start_datetime = datetime.now()
+    
     print("OPENSTAX TEXTBOOK LOADER")
     print("=" * 50)
+    print(f"Started at: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
     
     # Validate textbook path
     textbook_dir = Path(textbook_path)
@@ -314,14 +323,21 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
             if not force:
                 if check_collection_exists(uri, username, password, database, collection):
                     print(f"\nCollection '{collection}' already exists in the database.")
-                    print(f"Use --force to reload it anyway, or --full-cleanup to clear the database first.")
-                    return
+                    if not extract_concepts:
+                        print(f"Use --force to reload it anyway, or --full-cleanup to clear the database first.")
+                        return
+                    else:
+                        print("Proceeding with concept extraction only...")
             
-            print(f"\nLoading collection: {collection}")
-            success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
-            if not success:
-                print(f"Failed to load collection: {collection}")
-                return
+            # Only load collection if it doesn't exist or if force is used
+            if not check_collection_exists(uri, username, password, database, collection) or force:
+                print(f"\nLoading collection: {collection}")
+                success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
+                if not success:
+                    print(f"Failed to load collection: {collection}")
+                    return
+            else:
+                print(f"\nSkipping existing collection: {collection}")
         else:
             # Load all collections
             collection_files = list(collections_dir.glob("*.xml"))
@@ -339,22 +355,26 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 
                 if not collections_to_load:
                     print("All collections already exist in the database.")
-                    print("Use --force to reload them anyway, or --full-cleanup to clear the database first.")
-                    return
+                    if not extract_concepts:
+                        print("Use --force to reload them anyway, or --full-cleanup to clear the database first.")
+                        return
+                    else:
+                        print("Proceeding with concept extraction only...")
                 
                 print(f"Loading {len(collections_to_load)} new collections (skipped {len(collection_files) - len(collections_to_load)} existing)")
             else:
                 collections_to_load = collection_files
             
-            # Create progress bar for collections
-            with tqdm(total=len(collections_to_load), desc="Loading collections", unit="collection") as pbar:
-                for collection_file in collections_to_load:
-                    collection_name = collection_file.stem
-                    pbar.set_description(f"Loading {collection_name}")
-                    success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
-                    if not success:
-                        print(f"\nFailed to load collection: {collection_name}")
-                    pbar.update(1)
+            # Create progress bar for collections (only if there are collections to load)
+            if collections_to_load:
+                with tqdm(total=len(collections_to_load), desc="Loading collections", unit="collection") as pbar:
+                    for collection_file in collections_to_load:
+                        collection_name = collection_file.stem
+                        pbar.set_description(f"Loading {collection_name}")
+                        success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
+                        if not success:
+                            print(f"\nFailed to load collection: {collection_name}")
+                        pbar.update(1)
         
         # Verify import if requested
         if verify and not dry_run:
@@ -367,12 +387,73 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
             else:
                 print("Import verification failed")
         
+        # Extract concepts if requested
+        if extract_concepts and not dry_run:
+            print("\nStarting concept extraction...")
+            concept_system = ConceptExtractionSystem(
+                neo4j_uri=uri,
+                neo4j_user=username,
+                neo4j_password=password,
+                neo4j_database=database,
+                cache_file="wikidata_cache.json"
+            )
+            
+            try:
+                # Get actual total sentences to process for progress bar
+                with concept_system.driver.session() as session:
+                    result = session.run("""
+                        MATCH (s:Sentence) 
+                        WHERE NOT (s)-[:SENTENCE_HAS_CONCEPT]->(:Concept) 
+                        AND s.text IS NOT NULL 
+                        RETURN count(s) as total
+                    """)
+                    total_count = result.single()["total"]
+                
+                # Create progress bar
+                with tqdm(total=total_count, desc="Processing sentences", unit="sentence", 
+                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
+                    concept_stats = concept_system.process_sentences(
+                        batch_size=50,
+                        max_sentences=total_count,
+                        progress_callback=lambda processed: pbar.update(1)
+                    )
+                
+                print("\n=== CONCEPT EXTRACTION COMPLETE ===")
+                print(f"Sentences processed: {concept_stats['processed_sentences']}")
+                print(f"Concepts created: {concept_stats['concepts_created']}")
+                print(f"Entities extracted: {concept_stats['entities_extracted']}")
+                print(f"Wikidata lookups: {concept_stats['wikidata_lookups']}")
+                print(f"API calls made: {concept_stats.get('api_calls', 0)}")
+                print(f"Cache hits: {concept_stats.get('cache_hits', 0)}")
+                
+                if concept_stats['processed_sentences'] > 0:
+                    success_rate = concept_stats['concepts_created']/concept_stats['processed_sentences']*100
+                    print(f"Success rate: {success_rate:.1f}%")
+                
+            except Exception as e:
+                print(f"Concept extraction failed: {e}")
+                logger.exception("Concept extraction error")
+            finally:
+                concept_system.close()
+
+        # Calculate and display execution time
+        end_time = time.time()
+        end_datetime = datetime.now()
+        execution_time = end_time - start_time
+        execution_timedelta = timedelta(seconds=execution_time)
+        
         print(f"\nLoading completed!")
         print(f"Textbook: {textbook_dir.name}")
         if collection:
             print(f"Collection: {collection}")
         print(f"Database: {database}")
         print(f"Neo4j Browser: http://localhost:7474")
+        
+        print(f"\n=== EXECUTION SUMMARY ===")
+        print(f"Started: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Finished: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Total time: {execution_timedelta}")
+        print(f"Duration: {execution_time:.2f} seconds")
         
         if not dry_run:
             print(f"\nNavigate to localhost:7474 to see your imported data")
@@ -383,9 +464,27 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         
     except KeyboardInterrupt:
         print("\nLoading cancelled by user")
+        # Still show execution time even if cancelled
+        end_time = time.time()
+        execution_time = end_time - start_time
+        execution_timedelta = timedelta(seconds=execution_time)
+        print(f"\n=== EXECUTION SUMMARY (CANCELLED) ===")
+        print(f"Started: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Cancelled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Time before cancellation: {execution_timedelta}")
+        print(f"Duration: {execution_time:.2f} seconds")
     except Exception as e:
         print(f"\nLoading failed: {e}")
         logger.exception("Loading error")
+        # Still show execution time even if failed
+        end_time = time.time()
+        execution_time = end_time - start_time
+        execution_timedelta = timedelta(seconds=execution_time)
+        print(f"\n=== EXECUTION SUMMARY (FAILED) ===")
+        print(f"Started: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Failed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Time before failure: {execution_timedelta}")
+        print(f"Duration: {execution_time:.2f} seconds")
     finally:
         parser.close_connections()
         if bulk_importer:

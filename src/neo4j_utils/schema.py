@@ -282,6 +282,8 @@ class Neo4jSchemaSetup:
             "CREATE INDEX section_id_index IF NOT EXISTS FOR (s:Section) ON (s.section_id)",
             "CREATE INDEX subsection_id_index IF NOT EXISTS FOR (ss:Subsection) ON (ss.subsection_id)",
             "CREATE INDEX paragraph_id_index IF NOT EXISTS FOR (p:Paragraph) ON (p.paragraph_id)",
+            "CREATE INDEX paragraph_section_id_index IF NOT EXISTS FOR (p:Paragraph) ON (p.section_id)",
+            "CREATE INDEX paragraph_subsection_id_index IF NOT EXISTS FOR (p:Paragraph) ON (p.subsection_id)",
             "CREATE INDEX sentence_id_index IF NOT EXISTS FOR (s:Sentence) ON (s.sentence_id)",
             "CREATE INDEX concept_id_index IF NOT EXISTS FOR (c:Concept) ON (c.concept_id)",
 
@@ -323,7 +325,8 @@ class Neo4jSchemaSetup:
             # when concepts are extracted from sentences, not through schema setup
             "MATCH (sent:Sentence), (p:Paragraph) WHERE sent.paragraph_id = p.paragraph_id MERGE (sent)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)",
             "MATCH (p:Paragraph), (ss:Subsection) WHERE p.subsection_id = ss.subsection_id MERGE (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss)",
-            # Note: PARAGRAPH_BELONGS_TO_SECTION and PARAGRAPH_BELONGS_TO_DOCUMENT relationships
+            "MATCH (p:Paragraph), (s:Section) WHERE p.section_id = s.section_id MERGE (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(s)",
+            # Note: PARAGRAPH_BELONGS_TO_DOCUMENT relationships
             # are created during data import based on the hierarchical structure,
             # not through schema setup with field matching
             "MATCH (ss:Subsection), (s:Section) WHERE ss.section_id = s.section_id MERGE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)",
@@ -490,6 +493,7 @@ class Neo4jSchemaSetup:
             # Create sample paragraph
             paragraph_data = {
                 "paragraph_id": "para01-sample",
+                "section_id": "sec01-sample",
                 "subsection_id": "subsec01-sample",
                 "text": "Biology is the scientific study of life. It encompasses all living organisms and their interactions with the environment.",
                 "uuid": "paragraph-uuid-001",

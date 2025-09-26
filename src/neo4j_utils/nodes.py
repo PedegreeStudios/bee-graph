@@ -188,6 +188,7 @@ class Neo4jNodeCreator:
                 query = """
                 CREATE (p:Paragraph {
                     paragraph_id: $paragraph_id,
+                    section_id: $section_id,
                     subsection_id: $subsection_id,
                     text: $text,
                     uuid: $uuid,

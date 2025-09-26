@@ -67,10 +67,10 @@ git submodule [link]
  python scripts/setup_neo4j_schema.py --setup-schema
  ```
 
-#### Import Your Textbook 
+#### Import Your Textbook and Extract Concepts
 
 ```bash 
-python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import
+python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --extract-concepts
 
 #if you need to reimport and delete the database, please run (be careful): 
 python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
@@ -79,9 +79,38 @@ python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundl
 ## Project Structure
 ```bash
 bee-graph/
-├── config/              # Configuration files
+├── backup/              # Backup files
+├── env/                 # Virtual environment
 ├── scripts/             # Setup and utility scripts
+│   ├── extract_concepts.py
+│   ├── llm_app.py
+│   ├── load_textbooks.py
+│   ├── setup_database.py
+│   └── setup_neo4j_schema.py
 ├── src/                 # Source code
+│   ├── config/          # Configuration files
+│   │   ├── neo4j_config.json
+│   │   └── neo4j_config_template.json
+│   ├── neo4j_utils/     # Neo4j utilities
+│   │   ├── nodes.py
+│   │   ├── relationships.py
+│   │   └── schema.py
+│   └── textbook_parse/  # Textbook parsing modules
+│       ├── bulk_import.py
+│       ├── xml_parser.py
+│       └── concept_extraction/
+│           ├── cache_manager.py
+│           ├── concept_manager.py
+│           ├── entity_extractor.py
+│           ├── main.py
+│           └── wikidata_client.py
+├── tests/               # Test files
+│   ├── check_db.py
+│   ├── check_relationships.py
+│   ├── check_reverse.py
+│   └── test_hierarchy.py
+├── textbooks/           # OpenStax textbook content
+├── wikidata_cache.json  # Wikidata cache file
 └── requirements.txt     # Python dependencies
 ```
 
