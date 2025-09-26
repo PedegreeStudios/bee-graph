@@ -76,6 +76,12 @@ python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundl
 python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
 ```
 
+#### Run the LLM client to start querying the database 
+
+```bash 
+python streamlit run streamlit_app.py 
+```
+
 ## Project Structure
 ```bash
 bee-graph/
