@@ -2,9 +2,14 @@
 """Quick database check script"""
 
 from neo4j import GraphDatabase
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent / "src"))
+from config.config_loader import get_neo4j_connection_params
 
 def check_database():
-    driver = GraphDatabase.driver('bolt://localhost:7687')
+    uri, username, password, database = get_neo4j_connection_params()
+    driver = GraphDatabase.driver(uri, auth=(username, password))
     
     with driver.session() as session:
         # Check node counts

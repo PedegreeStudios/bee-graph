@@ -30,12 +30,20 @@ import click
 class Neo4jDatabaseSetup:
     """Simple Neo4j database setup and configuration manager."""
     
-    def __init__(self, uri: str = "bolt://localhost:7687", 
-                 username: str = "", 
-                 password: str = ""):
-        self.uri = uri
-        self.username = username
-        self.password = password
+    def __init__(self, uri: str = None, 
+                 username: str = None, 
+                 password: str = None):
+        # Load from config if parameters not provided
+        if uri is None or username is None or password is None:
+            from config.config_loader import get_neo4j_connection_params
+            config_uri, config_username, config_password, _ = get_neo4j_connection_params()
+            self.uri = uri if uri is not None else config_uri
+            self.username = username if username is not None else config_username
+            self.password = password if password is not None else config_password
+        else:
+            self.uri = uri
+            self.username = username
+            self.password = password
         self.driver = None
         self.config_dir = Path("src/config")       
         self.config_dir.mkdir(exist_ok=True)
@@ -258,7 +266,7 @@ class Neo4jDatabaseSetup:
         --------------------------------------------------------
         1. Install Docker
         2. Run: docker run -p7474:7474 -p7687:7687 -e NEO4J_AUTH=none neo4j:latest
-        3. Access Neo4j Browser at: http://localhost:7474
+        3. Access Neo4j Browser at: http://20.29.35.132:7474
         4. No authentication required (or set your own password)
         
         Option 2: Automatic Docker Container Startup
@@ -276,10 +284,10 @@ class Neo4jDatabaseSetup:
 
 
 @click.command()
-@click.option('--uri', default='bolt://localhost:7687', help='Neo4j URI')
-@click.option('--username', default='', help='Neo4j username (optional for no-auth)')
-@click.option('--password', default='', help='Neo4j password (optional for no-auth)')
-@click.option('--database', default='neo4j', help='Database name')
+@click.option('--uri', default=None, help='Neo4j URI (if not provided, loads from config)')
+@click.option('--username', default=None, help='Neo4j username (if not provided, loads from config)')
+@click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
+@click.option('--database', default=None, help='Database name (if not provided, loads from config)')
 @click.option('--create-database', is_flag=True, help='Create the database')
 @click.option('--verify', is_flag=True, help='Verify database connection')
 @click.option('--test', is_flag=True, help='Test connection only')
@@ -288,6 +296,15 @@ class Neo4jDatabaseSetup:
 def main(uri: str, username: str, password: str, database: str,
          create_database: bool, verify: bool, test: bool, auto_start_docker: bool, remove_existing: bool):
     """Set up Neo4j database for OpenStax Knowledge Graph RAG System."""
+    
+    # Load from config if parameters not provided
+    if uri is None or username is None or password is None or database is None:
+        from config.config_loader import get_neo4j_connection_params
+        config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+        uri = uri if uri is not None else config_uri
+        username = username if username is not None else config_username
+        password = password if password is not None else config_password
+        database = database if database is not None else config_database
     
     print("OPENSTAX KNOWLEDGE GRAPH - NEO4J SETUP")
     print("=" * 60)
@@ -348,7 +365,7 @@ def main(uri: str, username: str, password: str, database: str,
         print(f"\nSETUP COMPLETED SUCCESSFULLY!")
         print(f"   Database: {database}")
         print(f"   URI: {uri}")
-        print(f"   Browser: http://localhost:7474")
+        print(f"   Browser: http://20.29.35.132:7474")
         
         print(f"\nNext Steps:")
         print(f"   1. Database is ready for data import")

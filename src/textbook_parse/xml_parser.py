@@ -29,10 +29,19 @@ logger = logging.getLogger(__name__)
 class OpenStaxXMLParser:
     """Parser for OpenStax XML/CNXML files with dual labeling schema."""
     
-    def __init__(self, neo4j_uri: str = "bolt://localhost:7687", 
-                 neo4j_username: str = "", 
-                 neo4j_password: str = "",
-                 neo4j_database: str = "neo4j"):
+    def __init__(self, neo4j_uri: str = None, 
+                 neo4j_username: str = None, 
+                 neo4j_password: str = None,
+                 neo4j_database: str = None):
+        # Load from config if parameters not provided
+        if neo4j_uri is None or neo4j_username is None or neo4j_password is None or neo4j_database is None:
+            from config.config_loader import get_neo4j_connection_params
+            config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+            neo4j_uri = neo4j_uri if neo4j_uri is not None else config_uri
+            neo4j_username = neo4j_username if neo4j_username is not None else config_username
+            neo4j_password = neo4j_password if neo4j_password is not None else config_password
+            neo4j_database = neo4j_database if neo4j_database is not None else config_database
+        
         self.namespaces = {
             'col': 'http://cnx.rice.edu/collxml',
             'md': 'http://cnx.rice.edu/mdml',

@@ -15,18 +15,10 @@ def test_rag_functionality():
     """Test the new RAG functionality."""
     
     # Load Neo4j config
-    config_path = Path("src/config/neo4j_config.json")
-    if config_path.exists():
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        neo4j_config = config.get('neo4j', {})
-    else:
-        neo4j_config = {
-            'uri': 'bolt://localhost:7687',
-            'username': '',
-            'password': '',
-            'database': 'neo4j'
-        }
+    import sys
+    sys.path.append(str(Path(__file__).parent.parent / "src"))
+    from config.config_loader import load_neo4j_config
+    neo4j_config = load_neo4j_config()
     
     # Initialize pipeline
     pipeline = GraphRAGPipeline(

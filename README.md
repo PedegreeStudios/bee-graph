@@ -45,7 +45,7 @@ python scripts/setup_database.py --test
 ```
 
 #### Access Neo4j Browser
- Open in your browser: http://localhost:7474
+ Open in your browser: http://20.29.35.132:7474
 
 
  ### 3. Load and Ingest OpenStax Textbooks 

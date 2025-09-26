@@ -29,7 +29,7 @@ class GraphRAGPipeline:
         # Initialize components
         self.azure_config = AzureConfig(azure_config_file)
         self.graph_retriever = GraphRetriever(
-            uri=neo4j_params.get('uri', 'bolt://localhost:7687'),
+            uri=neo4j_params.get('uri'),
             username=neo4j_params.get('username', ''),
             password=neo4j_params.get('password', ''),
             database=neo4j_params.get('database', 'neo4j')
@@ -118,7 +118,8 @@ class GraphRAGPipeline:
     
     def _create_cypher_prompt_template(self) -> ChatPromptTemplate:
         """Create the prompt template for Cypher query generation."""
-        template = """You are a Cypher query generator for a Neo4j knowledge graph database. Convert natural language requests into valid Cypher queries.
+        # Use a raw string to avoid issues with curly braces in Cypher examples
+        template = r"""You are a Cypher query generator for a Neo4j knowledge graph database. Convert natural language requests into valid Cypher queries.
 
 ## DATABASE SCHEMA
 
@@ -164,9 +165,9 @@ class GraphRAGPipeline:
 
 ### Common Query Types:
 1. **Find content**: "Show me all books about X" → MATCH (b:Book) WHERE b.title CONTAINS "X"
-2. **Navigate hierarchy**: "Get chapters in book Y" → MATCH (b:Book {{title: "Y"}})-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter)
-3. **Find concepts**: "What concepts are mentioned in document Z" → MATCH (d:Document {{title: "Z"}})-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept)
-4. **Search by properties**: Use CONTAINS, STARTS WITH, or = for text matching
+2. **Navigate hierarchy**: "Get chapters in book Y" → MATCH (b:Book)-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter) WHERE b.title CONTAINS "Y"
+3. **Find concepts**: "What concepts are mentioned in document Z" → MATCH (d:Document)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE d.title CONTAINS "Z"
+4. **Search by properties**: Use CONTAINS for text matching
 5. **Count/aggregate**: Use COUNT(), COLLECT() for summaries
 
 ### Navigation Rules:
@@ -206,7 +207,7 @@ class GraphRAGPipeline:
 **Cypher**: `MATCH (b:Book) RETURN b.title, b.book_id`
 
 **User**: "Show chapters in the book called 'Introduction to AI'"
-**Cypher**: `MATCH (b:Book {{title: 'Introduction to AI'}})-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter) RETURN c.title, c.order ORDER BY c.order`
+**Cypher**: `MATCH (b:Book)-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter) WHERE b.title CONTAINS 'Introduction to AI' RETURN c.title, c.order ORDER BY c.order`
 
 **User**: "What concepts are mentioned in sentences containing 'machine learning'"
 **Cypher**: `MATCH (s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE s.text CONTAINS 'machine learning' RETURN DISTINCT c.label, c.description, c.wikidata_id, s.sentence_id`
@@ -224,7 +225,7 @@ class GraphRAGPipeline:
 **Cypher**: `MATCH (d:Document)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p:Paragraph) RETURN d.title, p.paragraph_id`
 
 **User**: "Find all sentences in a specific document using flexible hierarchy"
-**Cypher**: `MATCH (d:Document {title: 'Example Document'})-[:DOCUMENT_CONTAINS_PARAGRAPH|DOCUMENT_CONTAINS_SECTION*]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence) RETURN s.text, s.sentence_id`
+**Cypher**: `MATCH (d:Document)-[:DOCUMENT_CONTAINS_PARAGRAPH|DOCUMENT_CONTAINS_SECTION*]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence) WHERE d.title CONTAINS 'Example Document' RETURN s.text, s.sentence_id`
 
 **User**: "Trace hierarchy from sentence back to book"
 **Cypher**: `MATCH (s:Sentence)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_BELONGS_TO_DOCUMENT|PARAGRAPH_BELONGS_TO_SECTION|PARAGRAPH_BELONGS_TO_SUBSECTION*]->(d:Document)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc:Subchapter)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c:Chapter)-[:CHAPTER_BELONGS_TO_BOOK]->(b:Book) WHERE s.sentence_id = 'specific_sentence_id' RETURN b.title, c.title, sc.title, d.title`

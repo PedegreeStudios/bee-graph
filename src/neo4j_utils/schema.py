@@ -18,28 +18,39 @@ from typing import List, Dict, Any
 from datetime import datetime
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, AuthError
+import sys
+sys.path.append(str(Path(__file__).parent.parent))
+from config.config_loader import get_neo4j_connection_params
 
 
 class Neo4jSchemaSetup:
     """Neo4j database schema setup manager."""
     
-    def __init__(self, uri: str = "bolt://localhost:7687", 
-                 username: str = "", 
-                 password: str = "",
-                 database: str = "neo4j"):
+    def __init__(self, uri: str = None, 
+                 username: str = None, 
+                 password: str = None,
+                 database: str = None):
         """
         Initialize the Neo4j schema setup manager.
         
         Args:
-            uri: Neo4j connection URI
-            username: Neo4j username (optional for no-auth)
-            password: Neo4j password (optional for no-auth)
-            database: Database name to use
+            uri: Neo4j connection URI (if None, loads from config)
+            username: Neo4j username (if None, loads from config)
+            password: Neo4j password (if None, loads from config)
+            database: Neo4j database name (if None, loads from config)
         """
-        self.uri = uri
-        self.username = username
-        self.password = password
-        self.database = database
+        # Load from config if parameters not provided
+        if uri is None or username is None or password is None or database is None:
+            config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+            self.uri = uri if uri is not None else config_uri
+            self.username = username if username is not None else config_username
+            self.password = password if password is not None else config_password
+            self.database = database if database is not None else config_database
+        else:
+            self.uri = uri
+            self.username = username
+            self.password = password
+            self.database = database
         self.driver = None
     
     def check_neo4j_connection(self) -> bool:

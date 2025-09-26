@@ -17,13 +17,22 @@ logger = logging.getLogger(__name__)
 class BulkImporter:
     """Handles bulk import operations for Neo4j."""
     
-    def __init__(self, uri: str, username: str, password: str, database: str):
+    def __init__(self, uri: str = None, username: str = None, password: str = None, database: str = None):
         """Initialize the bulk importer with Neo4j connection details."""
-        self.uri = uri
-        self.username = username
-        self.password = password
-        self.database = database
-        self.driver = GraphDatabase.driver(uri, auth=(username, password))
+        # Load from config if parameters not provided
+        if uri is None or username is None or password is None or database is None:
+            from config.config_loader import get_neo4j_connection_params
+            config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+            self.uri = uri if uri is not None else config_uri
+            self.username = username if username is not None else config_username
+            self.password = password if password is not None else config_password
+            self.database = database if database is not None else config_database
+        else:
+            self.uri = uri
+            self.username = username
+            self.password = password
+            self.database = database
+        self.driver = GraphDatabase.driver(self.uri, auth=(self.username, self.password))
     
     def bulk_create_nodes(self, nodes: List[Tuple[str, Dict[str, Any]]], batch_size: int = 1000) -> int:
         """

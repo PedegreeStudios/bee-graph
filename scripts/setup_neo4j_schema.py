@@ -29,13 +29,14 @@ import click
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 from neo4j_utils import Neo4jSchemaSetup
+from config.config_loader import get_neo4j_connection_params
 
 
 @click.command()
-@click.option('--uri', default='bolt://localhost:7687', help='Neo4j URI')
-@click.option('--username', default='', help='Neo4j username (optional for no-auth)')
-@click.option('--password', default='', help='Neo4j password (optional for no-auth)')
-@click.option('--database', default='neo4j', help='Database name')
+@click.option('--uri', default=None, help='Neo4j URI (if not provided, loads from config)')
+@click.option('--username', default=None, help='Neo4j username (if not provided, loads from config)')
+@click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
+@click.option('--database', default=None, help='Database name (if not provided, loads from config)')
 @click.option('--setup-schema', is_flag=True, help='Set up complete database schema (constraints, indexes, and relationships)')
 @click.option('--create-sample-data', is_flag=True, help='Create sample nodes and relationships')
 @click.option('--delete-schema', is_flag=True, help='Delete all constraints and indexes from database')
@@ -48,6 +49,14 @@ def main(uri: str, username: str, password: str, database: str,
          setup_schema: bool, create_sample_data: bool, 
          delete_schema: bool, clear_database: bool, reset_database: bool,
          verify_schema: bool, show_schema: bool, test: bool):
+    
+    # Load from config if parameters not provided
+    if uri is None or username is None or password is None or database is None:
+        config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+        uri = uri if uri is not None else config_uri
+        username = username if username is not None else config_username
+        password = password if password is not None else config_password
+        database = database if database is not None else config_database
     """Set up Neo4j schema for OpenStax Knowledge Graph RAG System."""
     
     print("OPENSTAX KNOWLEDGE GRAPH - NEO4J SCHEMA SETUP")

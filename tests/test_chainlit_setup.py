@@ -76,24 +76,16 @@ def test_graph_retriever():
         from src.chainlit_app.graph_retriever import GraphRetriever
         
         # Load Neo4j config
-        config_path = Path("src/config/neo4j_config.json")
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-            neo4j_config = config.get('neo4j', {})
-        else:
-            neo4j_config = {
-                'uri': 'bolt://localhost:7687',
-                'username': '',
-                'password': '',
-                'database': 'neo4j'
-            }
+        import sys
+        sys.path.append(str(Path(__file__).parent.parent / "src"))
+        from config.config_loader import load_neo4j_config
+        neo4j_config = load_neo4j_config()
         
         retriever = GraphRetriever(
-            uri=neo4j_config.get('uri', 'bolt://localhost:7687'),
-            username=neo4j_config.get('username', ''),
-            password=neo4j_config.get('password', ''),
-            database=neo4j_config.get('database', 'neo4j')
+            uri=neo4j_config.get('uri'),
+            username=neo4j_config.get('username'),
+            password=neo4j_config.get('password'),
+            database=neo4j_config.get('database')
         )
         
         # Test connection (this might fail if Neo4j is not running)
@@ -116,18 +108,10 @@ def test_rag_pipeline():
         from src.chainlit_app.rag_pipeline import GraphRAGPipeline
         
         # Load Neo4j config
-        config_path = Path("src/config/neo4j_config.json")
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-            neo4j_config = config.get('neo4j', {})
-        else:
-            neo4j_config = {
-                'uri': 'bolt://localhost:7687',
-                'username': '',
-                'password': '',
-                'database': 'neo4j'
-            }
+        import sys
+        sys.path.append(str(Path(__file__).parent.parent / "src"))
+        from config.config_loader import load_neo4j_config
+        neo4j_config = load_neo4j_config()
         
         pipeline = GraphRAGPipeline(
             neo4j_params=neo4j_config,

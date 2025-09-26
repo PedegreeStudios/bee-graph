@@ -30,31 +30,10 @@ logger = logging.getLogger(__name__)
 pipeline = None
 
 
-def load_neo4j_config() -> Dict[str, str]:
-    """Load Neo4j configuration from config file."""
-    config_path = Path("src/config/neo4j_config.json")
-    
-    if not config_path.exists():
-        logger.warning("Neo4j config file not found, using defaults")
-        return {
-            'uri': 'bolt://localhost:7687',
-            'username': '',
-            'password': '',
-            'database': 'neo4j'
-        }
-    
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        return config.get('neo4j', {})
-    except Exception as e:
-        logger.error(f"Error loading Neo4j config: {e}")
-        return {
-            'uri': 'bolt://localhost:7687',
-            'username': '',
-            'password': '',
-            'database': 'neo4j'
-        }
+# Import centralized config loader
+import sys
+sys.path.append(str(Path(__file__).parent / "src"))
+from config.config_loader import load_neo4j_config
 
 
 @cl.on_chat_start

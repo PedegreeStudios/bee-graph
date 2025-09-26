@@ -40,10 +40,10 @@ logging.getLogger('textbook_parse.concept_extraction').setLevel(logging.WARNING)
 logging.getLogger('neo4j').setLevel(logging.WARNING)
 
 @click.command()
-@click.option('--uri', default='bolt://localhost:7687', help='Neo4j URI')
-@click.option('--username', default='neo4j', help='Neo4j username')
-@click.option('--password', default='', help='Neo4j password (optional for no-auth)')
-@click.option('--database', default='neo4j', help='Neo4j database name')
+@click.option('--uri', default=None, help='Neo4j URI (if not provided, loads from config)')
+@click.option('--username', default=None, help='Neo4j username (if not provided, loads from config)')
+@click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
+@click.option('--database', default=None, help='Neo4j database name (if not provided, loads from config)')
 @click.option('--max-sentences', type=int, help='Maximum sentences to process (for testing)')
 def main(uri: str, username: str, password: str, database: str, max_sentences: int):
     """Extract concepts from sentences in Neo4j database using Wikidata.
@@ -59,6 +59,15 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         # Test with limited sentences
         python scripts/extract_concepts.py --max-sentences 10
     """
+    
+    # Load from config if parameters not provided
+    if uri is None or username is None or password is None or database is None:
+        from config.config_loader import get_neo4j_connection_params
+        config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+        uri = uri if uri is not None else config_uri
+        username = username if username is not None else config_username
+        password = password if password is not None else config_password
+        database = database if database is not None else config_database
     
     print("NEO4J CONCEPT EXTRACTION")
     print("=" * 40)
@@ -121,7 +130,7 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         print(f"  Sentences with concepts: {final_stats['sentences_with_concepts']}")
         
         print(f"\nConcept extraction completed successfully!")
-        print(f"Neo4j Browser: http://localhost:7474")
+        print(f"Neo4j Browser: http://20.29.35.132:7474")
         
     except KeyboardInterrupt:
         print("\nProcess interrupted by user")

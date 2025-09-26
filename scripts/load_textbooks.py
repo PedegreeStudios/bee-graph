@@ -130,10 +130,10 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.command()
 @click.option('--textbook-path', required=True, help='Path to OpenStax textbook directory')
 @click.option('--collection', help='Specific collection to import (e.g., biology-2e, biology-ap-courses)')
-@click.option('--uri', default='bolt://localhost:7687', help='Neo4j URI')
-@click.option('--username', default='', help='Neo4j username (optional for no-auth)')
-@click.option('--password', default='', help='Neo4j password (optional for no-auth)')
-@click.option('--database', default='neo4j', help='Database name')
+@click.option('--uri', default=None, help='Neo4j URI (if not provided, loads from config)')
+@click.option('--username', default=None, help='Neo4j username (if not provided, loads from config)')
+@click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
+@click.option('--database', default=None, help='Database name (if not provided, loads from config)')
 @click.option('--setup-schema', is_flag=True, help='Set up database schema before import')
 @click.option('--dry-run', is_flag=True, help='Parse files without importing to database')
 @click.option('--list-collections', is_flag=True, help='List available collections and exit')
@@ -168,6 +168,15 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         # Dry run to test without changes
         python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
     """
+    
+    # Load from config if parameters not provided
+    if uri is None or username is None or password is None or database is None:
+        from config.config_loader import get_neo4j_connection_params
+        config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
+        uri = uri if uri is not None else config_uri
+        username = username if username is not None else config_username
+        password = password if password is not None else config_password
+        database = database if database is not None else config_database
     
     # Record start time
     start_time = time.time()
@@ -447,7 +456,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         if collection:
             print(f"Collection: {collection}")
         print(f"Database: {database}")
-        print(f"Neo4j Browser: http://localhost:7474")
+        print(f"Neo4j Browser: http://20.29.35.132:7474")
         
         print(f"\n=== EXECUTION SUMMARY ===")
         print(f"Started: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -456,7 +465,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         print(f"Duration: {execution_time:.2f} seconds")
         
         if not dry_run:
-            print(f"\nNavigate to localhost:7474 to see your imported data")
+            print(f"\nNavigate to 20.29.35.132:7474 to see your imported data")
             print(f"   ")
             print(f"\nTo clear existing data before future imports:")
             print(f"   python scripts/load_textbooks.py --textbook-path <path> --cleanup")
