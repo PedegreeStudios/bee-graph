@@ -19346,5 +19346,1240 @@
     "aliases": [],
     "wikidata_url": "https://www.wikidata.org/wiki/Q58236759",
     "cached_at": "2025-09-26T14:36:35.797948"
+  },
+  "acidbalance": null,
+  "basal": {
+    "qid": "Q37305665",
+    "label": "Basal",
+    "description": "family name",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q37305665",
+    "cached_at": "2025-09-26T14:43:23.753879"
+  },
+  "lipid": {
+    "qid": "Q11367",
+    "label": "lipid",
+    "description": "class of nonpolar substances including those of biological and artificial origin",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q11367",
+    "cached_at": "2025-09-26T14:43:24.412052"
+  },
+  "both microbes": null,
+  "debris": {
+    "qid": "Q106368151",
+    "label": "Debris",
+    "description": "2017 video game",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q106368151",
+    "cached_at": "2025-09-26T14:43:25.710473"
+  },
+  "adrenal": {
+    "qid": "Q712294",
+    "label": "adrenal gland",
+    "description": "endocrine gland that produces a variety of hormones",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q712294",
+    "cached_at": "2025-09-26T14:43:26.392383"
+  },
+  "adrenaline": {
+    "qid": "Q132621",
+    "label": "epinephrine",
+    "description": "chemical compound",
+    "aliases": [
+      "adrenaline"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q132621",
+    "cached_at": "2025-09-26T14:43:27.009011"
+  },
+  "a few minutes": {
+    "qid": "Q110111187",
+    "label": "A Few Minutes to Wait before Twelve O'Clock",
+    "description": "etching by James Clarke Hook",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q110111187",
+    "cached_at": "2025-09-26T14:43:27.608133"
+  },
+  "a narrow layer": null,
+  "a world": {
+    "qid": "Q50914885",
+    "label": "A World",
+    "description": "painting by Maximilian Lenz",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q50914885",
+    "cached_at": "2025-09-26T14:43:28.894062"
+  },
+  "agerelated muscle atrophy": null,
+  "atrophy": {
+    "qid": "Q194520",
+    "label": "atrophy",
+    "description": "partial or complete wasting away of a part of the body",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q194520",
+    "cached_at": "2025-09-26T14:43:30.092339"
+  },
+  "aging": {
+    "qid": "Q332154",
+    "label": "ageing",
+    "description": "biological processes in a human body coupled to increasing age",
+    "aliases": [
+      "aging"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q332154",
+    "cached_at": "2025-09-26T14:43:30.716660"
+  },
+  "pneumocystis": {
+    "qid": "Q133125",
+    "label": "Pneumocystis",
+    "description": "genus of fungi",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q133125",
+    "cached_at": "2025-09-26T14:43:31.350610"
+  },
+  "all living cells": {
+    "qid": "Q99710188",
+    "label": "All living cells are cognitive",
+    "description": "scientific article published on 21 September 2020",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q99710188",
+    "cached_at": "2025-09-26T14:43:31.953781"
+  },
+  "all muscles": {
+    "qid": "Q40562317",
+    "label": "All muscles are not created equal",
+    "description": "scientific article published on November 1994",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q40562317",
+    "cached_at": "2025-09-26T14:43:32.583732"
+  },
+  "breathing": {
+    "qid": "Q9530",
+    "label": "breathing",
+    "description": "process that moves air in and out of the lungs",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q9530",
+    "cached_at": "2025-09-26T14:43:33.233631"
+  },
+  "all other solutes": null,
+  "a filtrate composition": null,
+  "all structures": null,
+  "all systems": {
+    "qid": "Q63171203",
+    "label": "All Systems Red",
+    "description": "2017 US paperback edition",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q63171203",
+    "cached_at": "2025-09-26T14:43:35.685248"
+  },
+  "a quality": {
+    "qid": "Q112827299",
+    "label": "A Quality of Mercy",
+    "description": "episode of television series Star Trek: Strange New Worlds",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q112827299",
+    "cached_at": "2025-09-26T14:43:36.341694"
+  },
+  "almost 27 percent": null,
+  "americans": {
+    "qid": "Q846570",
+    "label": "Americans",
+    "description": "citizens and nationals of the United States of America",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q846570",
+    "cached_at": "2025-09-26T14:43:37.637774"
+  },
+  "a cartilage structure": null,
+  "a rib": {
+    "qid": "Q40496109",
+    "label": "Ana Isabel Ribeiro",
+    "description": "researcher",
+    "aliases": [
+      "A Ribeiro"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q40496109",
+    "cached_at": "2025-09-26T14:43:38.837575"
+  },
+  "circulation": {
+    "qid": "Q578091",
+    "label": "Circulation",
+    "description": "journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q578091",
+    "cached_at": "2025-09-26T14:43:40.053911"
+  },
+  "a given hormone": null,
+  "a minimal amount": {
+    "qid": "Q57676511",
+    "label": "A minimal amount of acrylonitrile turns the nitroxide-mediated polymerization of methyl methacrylate into an almost ideal controlled/living system",
+    "description": "article by Julien Nicolas et al published 1 January 2010 in Journal of Polymer Science Part A",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q57676511",
+    "cached_at": "2025-09-26T14:43:41.361820"
+  },
+  "artery": {
+    "qid": "Q9655",
+    "label": "artery",
+    "description": "blood vessel that carries oxygenated blood away from the heart to other organs rather than lungs",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q9655",
+    "cached_at": "2025-09-26T14:43:41.966552"
+  },
+  "an opportunistic pathogen": {
+    "qid": "Q24601321",
+    "label": "An opportunistic pathogen isolated from the gut of an obese human causes obesity in germfree mice",
+    "description": "scientific article published on December 13, 2012",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q24601321",
+    "cached_at": "2025-09-26T14:43:42.577251"
+  },
+  "about 230 ml": null,
+  "hiv": {
+    "qid": "Q15787",
+    "label": "HIV",
+    "description": "human retrovirus, cause of AIDS",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q15787",
+    "cached_at": "2025-09-26T14:43:43.861804"
+  },
+  "a few weeks": {
+    "qid": "Q91491429",
+    "label": "A Few Weeks Abroad-Notes by the Way",
+    "description": "scientific article published on 01 January 1853",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q91491429",
+    "cached_at": "2025-09-26T14:43:44.462336"
+  },
+  "hemostasis": {
+    "qid": "Q487937",
+    "label": "hemostasis",
+    "description": "the stopping of bleeding (loss of body fluid) or the arrest of the circulation to an organ or part",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q487937",
+    "cached_at": "2025-09-26T14:43:45.092186"
+  },
+  "a mechanical device": {
+    "qid": "Q112951713",
+    "label": "A Mechanical Device for Submillimetre-Scale Biomaterials Testing",
+    "description": "2020 master's thesis by Stephen Creamer at University of Auckland",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q112951713",
+    "cached_at": "2025-09-26T14:43:45.722823"
+  },
+  "a vital contribution": null,
+  "an english word": {
+    "qid": "Q36073016",
+    "label": "An English Word Database of EMOtional TErms (EMOTE).",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q36073016",
+    "cached_at": "2025-09-26T14:43:47.005486"
+  },
+  "an important marker": {
+    "qid": "Q92291764",
+    "label": "An important marker explained",
+    "description": "scientific article published on 01 June 2019",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q92291764",
+    "cached_at": "2025-09-26T14:43:47.659764"
+  },
+  "actin": {
+    "qid": "Q222749",
+    "label": "acting",
+    "description": "impersonation of a character in an artistic performance",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q222749",
+    "cached_at": "2025-09-26T14:43:48.278999"
+  },
+  "a single structure": null,
+  "an organ": {
+    "qid": "Q28802988",
+    "label": "An organ grinder (a woman of savoy)",
+    "description": "painting by Jean Honore Fragonard",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28802988",
+    "cached_at": "2025-09-26T14:43:49.551794"
+  },
+  "a certain range": null,
+  "a persons stomach": null,
+  "fuel": {
+    "qid": "Q15766923",
+    "label": "Fuel",
+    "description": "scientific journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q15766923",
+    "cached_at": "2025-09-26T14:43:51.374913"
+  },
+  "an antibody protein": null,
+  "a secreted form": {
+    "qid": "Q28254145",
+    "label": "A secreted form of ADAM9 promotes carcinoma invasion through tumor-stromal interactions",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28254145",
+    "cached_at": "2025-09-26T14:43:52.803602"
+  },
+  "an appropriate balance": null,
+  "an artery": {
+    "qid": "Q30519559",
+    "label": "An artery-specific fluorescent dye for studying neurovascular coupling",
+    "description": "scientific article published on January 22, 2012",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q30519559",
+    "cached_at": "2025-09-26T14:43:54.142806"
+  },
+  "an eccentric contraction": null,
+  "an environment": {
+    "qid": "Q57239923",
+    "label": "An Environmental History of Medieval Europe",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q57239923",
+    "cached_at": "2025-09-26T14:43:55.428111"
+  },
+  "an excellent example": {
+    "qid": "Q94262065",
+    "label": "An Excellent Example",
+    "description": "scientific article published in February 1911",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q94262065",
+    "cached_at": "2025-09-26T14:43:56.091157"
+  },
+  "canal": {
+    "qid": "Q12284",
+    "label": "canal",
+    "description": "man-made channel for water",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q12284",
+    "cached_at": "2025-09-26T14:43:56.742376"
+  },
+  "an important function": {
+    "qid": "Q28361995",
+    "label": "An important function of Nrf2 in combating oxidative stress: detoxification of acetaminophen",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28361995",
+    "cached_at": "2025-09-26T14:43:57.365988"
+  },
+  "an important part": {
+    "qid": "Q72715331",
+    "label": "An important partial success of molecular biology in the clearance of cellular protein synthesis",
+    "description": "scientific article published on 01 November 1965",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q72715331",
+    "cached_at": "2025-09-26T14:43:57.997291"
+  },
+  "an important way": {
+    "qid": "Q120373951",
+    "label": "An Important Way of Text Organization-Textual Patterns",
+    "description": "scholarly article in Journal of Beijing Institute of Technology (Social Sciences Edition), no. 2, 2008",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q120373951",
+    "cached_at": "2025-09-26T14:43:58.603956"
+  },
+  "an inability": {
+    "qid": "Q48385113",
+    "label": "An inability to antagonize with naloxone the elevated nociceptive thresholds resulting from electrical stimulation of the mesencephalic central gray",
+    "description": "scientific article published on June 1, 1976",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q48385113",
+    "cached_at": "2025-09-26T14:43:59.242772"
+  },
+  "an intercalated disc": null,
+  "a pump": {
+    "qid": "Q4659073",
+    "label": "A Pumpkin Full of Nonsense",
+    "description": "1985 television film",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q4659073",
+    "cached_at": "2025-09-26T14:44:00.461743"
+  },
+  "an isometric contraction": null,
+  "a skeletal joint": null,
+  "an objects": null,
+  "an objects weight": null,
+  "an organelle": {
+    "qid": "Q110719216",
+    "label": "An Organelle With Many Jobs: Mitochondrial Specialization in the Retina and Rpe",
+    "description": "doctoral thesis by Michelle Marie Giarmarco, University of Washington, 2018",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q110719216",
+    "cached_at": "2025-09-26T14:44:04.142043"
+  },
+  "anastomosis": {
+    "qid": "Q3615100",
+    "label": "surgical anastomosis",
+    "description": "surgical technique",
+    "aliases": [
+      "anastomosis"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q3615100",
+    "cached_at": "2025-09-26T14:44:04.775068"
+  },
+  "anatomical names": {
+    "qid": "Q83870002",
+    "label": "Anatomical Names",
+    "description": "scientific article published on March 24, 2010",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q83870002",
+    "cached_at": "2025-09-26T14:44:05.419437"
+  },
+  "anatomical terms": {
+    "qid": "Q264251",
+    "label": "anatomical terms of motion",
+    "description": "Wikimedia list article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q264251",
+    "cached_at": "2025-09-26T14:44:06.027956"
+  },
+  "anatomist": {
+    "qid": "Q10872101",
+    "label": "anatomist",
+    "description": "scientist with a specialty in anatomy",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q10872101",
+    "cached_at": "2025-09-26T14:44:06.660767"
+  },
+  "another approach": {
+    "qid": "Q44198959",
+    "label": "Another approach to estimating the reliability of glycaemic index",
+    "description": "scientific article published on 11 January 2008",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q44198959",
+    "cached_at": "2025-09-26T14:44:07.307700"
+  },
+  "another barrier": {
+    "qid": "Q30484049",
+    "label": "Another barrier to regeneration in the CNS: activated macrophages induce extensive retraction of dystrophic axons through direct physical interactions",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q30484049",
+    "cached_at": "2025-09-26T14:44:07.910392"
+  },
+  "another feature": {
+    "qid": "Q43700200",
+    "label": "Another feature of TURP syndrome: hyperglycaemia and lactic acidosis caused by massive absorption of sorbitol",
+    "description": "scientific article published in August 2001",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q43700200",
+    "cached_at": "2025-09-26T14:44:08.563156"
+  },
+  "another phenomenon": null,
+  "antibodies": {
+    "qid": "Q79460",
+    "label": "antibody",
+    "description": "immune system protein",
+    "aliases": [
+      "antibodies"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q79460",
+    "cached_at": "2025-09-26T14:44:09.973956"
+  },
+  "any discussion": null,
+  "a continuous cytoplasm": null,
+  "a myotube": null,
+  "a quicker rate": null,
+  "a student": {
+    "qid": "Q28533405",
+    "label": "A Student",
+    "description": "painting by Harold Knight",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28533405",
+    "cached_at": "2025-09-26T14:44:13.092709"
+  },
+  "co gas": {
+    "qid": "Q97359858",
+    "label": "CooA CO-sensing gasoreceptor",
+    "description": "heme-containing transcription factor",
+    "aliases": [
+      "CO gasoreceptor"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q97359858",
+    "cached_at": "2025-09-26T14:44:13.745823"
+  },
+  "all body systems": null,
+  "connective tissue": {
+    "qid": "Q25615",
+    "label": "connective tissue",
+    "description": "type of biological tissue",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q25615",
+    "cached_at": "2025-09-26T14:44:15.019411"
+  },
+  "active, electrical signals": null,
+  "distribution": {
+    "qid": "Q200726",
+    "label": "probability distribution",
+    "description": "mathematical function that describes the probability of occurrence of different possible outcomes in an experiment",
+    "aliases": [
+      "distribution"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q200726",
+    "cached_at": "2025-09-26T14:44:16.277717"
+  },
+  "care": {
+    "qid": "Q158501",
+    "label": "Carex",
+    "description": "genus of plants",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q158501",
+    "cached_at": "2025-09-26T14:44:16.936496"
+  },
+  "a sign": {
+    "qid": "Q11190644",
+    "label": "A Sign",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q11190644",
+    "cached_at": "2025-09-26T14:44:17.591409"
+  },
+  "a lumen": {
+    "qid": "Q35594079",
+    "label": "A lumenal domain-dependent pathway for sorting to intralumenal vesicles of multivesicular endosomes involved in organelle morphogenesis",
+    "description": "scientific article published on March 2006",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q35594079",
+    "cached_at": "2025-09-26T14:44:18.281974"
+  },
+  "a developmental pathway": {
+    "qid": "Q52225033",
+    "label": "A developmental pathway involving four phenotypically and functionally distinct subsets of CD3-CD4-CD8- triple-negative adult mouse thymocytes defined by CD44 and CD25 expression.",
+    "description": "scientific article published in May 1993",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q52225033",
+    "cached_at": "2025-09-26T14:44:19.565167"
+  },
+  "a mean diameter": null,
+  "cortex": {
+    "qid": "Q5173238",
+    "label": "Cortex",
+    "description": "journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q5173238",
+    "cached_at": "2025-09-26T14:44:20.841288"
+  },
+  "digestion": {
+    "qid": "Q15766219",
+    "label": "Digestion",
+    "description": "journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q15766219",
+    "cached_at": "2025-09-26T14:44:21.460245"
+  },
+  "each section": null,
+  "atlantic": {
+    "qid": "Q97",
+    "label": "Atlantic Ocean",
+    "description": "ocean between Europe, Africa and the Americas",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q97",
+    "cached_at": "2025-09-26T14:44:22.740674"
+  },
+  "carbohydrate": {
+    "qid": "Q11358",
+    "label": "carbohydrate",
+    "description": "organic compound that consists only of carbon, hydrogen, and oxygen",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q11358",
+    "cached_at": "2025-09-26T14:44:23.990493"
+  },
+  "a patient": {
+    "qid": "Q112692166",
+    "label": "A patient-centric dataset of images and metadata for identifying melanomas using clinical context",
+    "description": "publication published on 28 January 2021",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q112692166",
+    "cached_at": "2025-09-26T14:44:24.611665"
+  },
+  "astrocyte": {
+    "qid": "Q502961",
+    "label": "astrocyte",
+    "description": "star-shaped glial cells in the brain and spinal cord",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q502961",
+    "cached_at": "2025-09-26T14:44:25.300693"
+  },
+  "a fibrous joint": null,
+  "a smaller level": null,
+  "a ligament": {
+    "qid": "Q47593698",
+    "label": "A Ligamentum Flavum-Preserving Approach to the Lumbar Spinal Canal",
+    "description": "scientific article published on October 1, 2003",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q47593698",
+    "cached_at": "2025-09-26T14:44:27.724842"
+  },
+  "another synapse": null,
+  "its receptor": null,
+  "neurotransmitter": {
+    "qid": "Q162657",
+    "label": "neurotransmitter",
+    "description": "endogenous chemicals that transmit signals across a synapse from one neuron to another",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q162657",
+    "cached_at": "2025-09-26T14:44:29.524349"
+  },
+  "adolescence": {
+    "qid": "Q131774",
+    "label": "adolescence",
+    "description": "transitional phase between childhood and adulthood",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q131774",
+    "cached_at": "2025-09-26T14:44:30.180545"
+  },
+  "a sperm": {
+    "qid": "Q17329932",
+    "label": "A Sperm Whale Washed up on the Beach at Noordwijk, 28 December 1614",
+    "description": "painting by Hans Savery (I), Rijksmuseum",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q17329932",
+    "cached_at": "2025-09-26T14:44:30.806908"
+  },
+  "adjacent bones": null,
+  "a better parent": null,
+  "a graded potential": null,
+  "a synapse": {
+    "qid": "Q46504670",
+    "label": "A synapse-specific carbohydrate at the neuromuscular junction: association with both acetylcholinesterase and a glycolipid",
+    "description": "scientific article published in March 1988",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q46504670",
+    "cached_at": "2025-09-26T14:44:33.273385"
+  },
+  "bloodstream": {
+    "qid": "Q17332382",
+    "label": "Bloodstream",
+    "description": "2015 single by Ed Sheeran and Rudimental",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q17332382",
+    "cached_at": "2025-09-26T14:44:33.914642"
+  },
+  "functioning": {
+    "qid": "Q18556966",
+    "label": "hormone producing pituitary cancer",
+    "description": "Human disease",
+    "aliases": [
+      "functioning pituitary tumor"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q18556966",
+    "cached_at": "2025-09-26T14:44:34.542249"
+  },
+  "all the tissues": null,
+  "endocardial tubes": null,
+  "athlete": {
+    "qid": "Q2066131",
+    "label": "athlete",
+    "description": "person who participates regularly in a sport",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q2066131",
+    "cached_at": "2025-09-26T14:44:36.429269"
+  },
+  "a great distance": null,
+  "attached cells": null,
+  "ans": {
+    "qid": "Q499594",
+    "label": "Ans",
+    "description": "municipality in Wallonia, Belgium",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q499594",
+    "cached_at": "2025-09-26T14:44:38.359604"
+  },
+  "anabolic": {
+    "qid": "Q483313",
+    "label": "anabolic",
+    "description": "chemical substance that increases the anabolism",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q483313",
+    "cached_at": "2025-09-26T14:44:39.026745"
+  },
+  "a haploid cell": null,
+  "284 days": null,
+  "lmp": {
+    "qid": "Q54801",
+    "label": "Politics Can Be Different",
+    "description": "Hungarian political party",
+    "aliases": [
+      "LMP"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q54801",
+    "cached_at": "2025-09-26T14:44:42.989510"
+  },
+  "any disruption": null,
+  "disruption": {
+    "qid": "Q2956685",
+    "label": "disruption",
+    "description": "event which interferes with an ongoing process",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q2956685",
+    "cached_at": "2025-09-26T14:44:44.192098"
+  },
+  "demand": {
+    "qid": "Q1665268",
+    "label": "command",
+    "description": "instruction that carries a legal duty to obey",
+    "aliases": [
+      "demand"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q1665268",
+    "cached_at": "2025-09-26T14:44:44.879535"
+  },
+  "calmodulin": {
+    "qid": "Q409145",
+    "label": "calmodulin family",
+    "description": "group of calcium sensors and calcium signal modulators",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q409145",
+    "cached_at": "2025-09-26T14:44:45.548259"
+  },
+  "albuman": null,
+  "a stressrelaxation response": null,
+  "conversation": {
+    "qid": "Q107031961",
+    "label": "Conversation",
+    "description": "vocal track by Twice; 2021 studio recording",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q107031961",
+    "cached_at": "2025-09-26T14:44:47.416037"
+  },
+  "a coordinated manner": null,
+  "a manner": {
+    "qid": "Q123306628",
+    "label": "A Manner Of Speaking",
+    "description": "1959 film by John Rich",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q123306628",
+    "cached_at": "2025-09-26T14:44:48.630050"
+  },
+  "a white color": null,
+  "an illustration": {
+    "qid": "Q79494262",
+    "label": "An Illustration",
+    "description": "print by Robert Frederick Blum (American, 1857-1903) (1920.1306)",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q79494262",
+    "cached_at": "2025-09-26T14:44:49.862923"
+  },
+  "architecture": {
+    "qid": "Q12271",
+    "label": "architecture",
+    "description": "process of planning, designing and construction",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q12271",
+    "cached_at": "2025-09-26T14:44:50.479042"
+  },
+  "digest": {
+    "qid": "Q15716711",
+    "label": "Digestive Diseases and Sciences",
+    "description": "journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q15716711",
+    "cached_at": "2025-09-26T14:44:51.094323"
+  },
+  "bipolar neurons": {
+    "qid": "Q36643182",
+    "label": "Bipolar neurons in rat visual cortex: a combined Golgi-electron microscope study",
+    "description": "scientific article published on December 1981",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q36643182",
+    "cached_at": "2025-09-26T14:44:51.737722"
+  },
+  "blood cells": {
+    "qid": "Q27709409",
+    "label": "Blood cells",
+    "description": "scientific journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q27709409",
+    "cached_at": "2025-09-26T14:44:52.354032"
+  },
+  "blood flow": {
+    "qid": "Q4381136",
+    "label": "blood flow",
+    "description": "continuous circulation of blood",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q4381136",
+    "cached_at": "2025-09-26T14:44:53.054630"
+  },
+  "blood groups": {
+    "qid": "Q121837678",
+    "label": "Blood Groups and Blood Transfusions",
+    "description": "written work by Alexander S. Wiener",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q121837678",
+    "cached_at": "2025-09-26T14:44:53.670235"
+  },
+  "blood pressure increases": {
+    "qid": "Q48338780",
+    "label": "Blood pressure increases during a simulated night shift in persons at risk for hypertension",
+    "description": "scientific article published on December 1, 2010",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q48338780",
+    "cached_at": "2025-09-26T14:44:54.292181"
+  },
+  "blood pressure": {
+    "qid": "Q15754419",
+    "label": "Blood Pressure",
+    "description": "scientific journal",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q15754419",
+    "cached_at": "2025-09-26T14:44:54.930550"
+  },
+  "blood transfusions": {
+    "qid": "Q64350359",
+    "label": "Blood Transfusions and Immune Response",
+    "description": "clinical trial",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q64350359",
+    "cached_at": "2025-09-26T14:44:55.564606"
+  },
+  "blood vessel development": {
+    "qid": "Q14859587",
+    "label": "blood vessel development",
+    "description": "The process whose specific outcome is the progression of a blood vessel over time, from its formation to the mature structure. The blood vessel is the vasculature carrying blood.",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q14859587",
+    "cached_at": "2025-09-26T14:44:56.186322"
+  },
+  "blood volume": {
+    "qid": "Q1896673",
+    "label": "blood volume",
+    "description": "volume of blood in the circulatory system of an individual",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q1896673",
+    "cached_at": "2025-09-26T14:44:56.824755"
+  },
+  "body movements": {
+    "qid": "Q63403772",
+    "label": "Body Movements Analysis During Sleep in Very Premature Infants",
+    "description": "clinical trial",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q63403772",
+    "cached_at": "2025-09-26T14:44:57.441899"
+  },
+  "bone tissue": {
+    "qid": "Q83692",
+    "label": "bone tissue",
+    "description": "major structural and supportive connective tissue of the body",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q83692",
+    "cached_at": "2025-09-26T14:44:58.082105"
+  },
+  "both acidosis": null,
+  "both sets": null,
+  "both the atria": null,
+  "breast": {
+    "qid": "Q9103",
+    "label": "female breast",
+    "description": "one of two prominences located on the region of the torso of a female primate, containing the mammary gland",
+    "aliases": [
+      "breast"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q9103",
+    "cached_at": "2025-09-26T14:45:01.127814"
+  },
+  "a big picture": {
+    "qid": "Q34767041",
+    "label": "A big picture of a small brain",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q34767041",
+    "cached_at": "2025-09-26T14:45:01.742739"
+  },
+  "name": {
+    "qid": "Q82799",
+    "label": "name",
+    "description": "word or phrase used for identification",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q82799",
+    "cached_at": "2025-09-26T14:45:02.386161"
+  },
+  "another direction": null,
+  "an underlying order": null,
+  "how different parts": {
+    "qid": "Q55428598",
+    "label": "How Different Parts of the World Provide New Insights Into Food Allergy",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q55428598",
+    "cached_at": "2025-09-26T14:45:04.222486"
+  },
+  "bony": {
+    "qid": "Q650541",
+    "label": "Bony",
+    "description": "commune in Aisne, France",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q650541",
+    "cached_at": "2025-09-26T14:45:04.881204"
+  },
+  "any waste material": null,
+  "apple": {
+    "qid": "Q312",
+    "label": "Apple Inc.",
+    "description": "American multinational technology company based in Cupertino, California",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q312",
+    "cached_at": "2025-09-26T14:45:06.157283"
+  },
+  "ambiguity": {
+    "qid": "Q1140419",
+    "label": "ambiguity",
+    "description": "type of uncertainty of meaning in which several interpretations are plausible",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q1140419",
+    "cached_at": "2025-09-26T14:45:06.768930"
+  },
+  "cck": {
+    "qid": "Q60315441",
+    "label": "cholecystokinin",
+    "description": "mammalian protein found in Homo sapiens",
+    "aliases": [
+      "CCK"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q60315441",
+    "cached_at": "2025-09-26T14:45:07.433928"
+  },
+  "calcitriol": {
+    "qid": "Q139195",
+    "label": "calcitriol",
+    "description": "vitamin D",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q139195",
+    "cached_at": "2025-09-26T14:45:08.090559"
+  },
+  "calcium ions": {
+    "qid": "Q38201298",
+    "label": "Calcium ions, active zones and synaptic transmitter release",
+    "description": "scientific article published on October 1988",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q38201298",
+    "cached_at": "2025-09-26T14:45:08.736141"
+  },
+  "a chemical element": null,
+  "any biological processes": null,
+  "carbohydrate digestion": {
+    "qid": "Q5037880",
+    "label": "Carbohydrate digestion",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q5037880",
+    "cached_at": "2025-09-26T14:45:10.575108"
+  },
+  "carbon dioxide": {
+    "qid": "Q1997",
+    "label": "carbon dioxide",
+    "description": "chemical compound",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q1997",
+    "cached_at": "2025-09-26T14:45:11.231495"
+  },
+  "cardiologist": {
+    "qid": "Q3264451",
+    "label": "cardiologist",
+    "description": "physician who specializes in cardiology",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q3264451",
+    "cached_at": "2025-09-26T14:45:11.890960"
+  },
+  "articular": {
+    "qid": "Q133087",
+    "label": "gout",
+    "description": "medical condition that results in recurrent pain and swelling of joints",
+    "aliases": [
+      "articular gout"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q133087",
+    "cached_at": "2025-09-26T14:45:12.520543"
+  },
+  "cellular components": {
+    "qid": "Q34083797",
+    "label": "Cellular components that functionally interact with signaling phospholipase A(2)s",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q34083797",
+    "cached_at": "2025-09-26T14:45:13.160252"
+  },
+  "central control": {
+    "qid": "Q22121565",
+    "label": "Central Control and Audit Commission of the Communist Party of Czechoslovakia",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q22121565",
+    "cached_at": "2025-09-26T14:45:13.808521"
+  },
+  "chance": {
+    "qid": "Q16274777",
+    "label": "Chance",
+    "description": "family name",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q16274777",
+    "cached_at": "2025-09-26T14:45:14.514367"
+  },
+  "chylomicron": {
+    "qid": "Q423126",
+    "label": "chylomicron",
+    "description": "large lipoprotein particle (diameter 75-1200 nm)",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q423126",
+    "cached_at": "2025-09-26T14:45:15.152222"
+  },
+  "circulation patterns": {
+    "qid": "Q45753705",
+    "label": "Circulation patterns of genetically distinct group A and B strains of human respiratory syncytial virus in a community",
+    "description": "scientific article published on September 1, 1998",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q45753705",
+    "cached_at": "2025-09-26T14:45:15.793698"
+  },
+  "an unhealthy diet": {
+    "qid": "Q57516357",
+    "label": "An unhealthy diet: making sense of a fatty niche for leukemia stem cells",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q57516357",
+    "cached_at": "2025-09-26T14:45:16.428839"
+  },
+  "girdle": {
+    "qid": "Q28839480",
+    "label": "girdle",
+    "description": "narrow belt, cord, sash, or the like, usually decorative and worn around the waist or hips to fasten or confine garments",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28839480",
+    "cached_at": "2025-09-26T14:45:17.044681"
+  },
+  "connective tissues": {
+    "qid": "Q28257312",
+    "label": "Connective tissues: signalling by tenascins",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q28257312",
+    "cached_at": "2025-09-26T14:45:17.740915"
+  },
+  "interrelationship": {
+    "qid": "Q116821524",
+    "label": "interrelationship",
+    "description": "mutual relationship between or among the parts of a group or collection",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q116821524",
+    "cached_at": "2025-09-26T14:45:18.359108"
+  },
+  "a structural cell": null,
+  "an apple": {
+    "qid": "Q621231",
+    "label": "Apple Corps",
+    "description": "company formed by The Beatles",
+    "aliases": [
+      "An Apple Film"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q621231",
+    "cached_at": "2025-09-26T14:45:20.191399"
+  },
+  "contractile cells": {
+    "qid": "Q72799132",
+    "label": "Contractile Cells in Human Seminiferous Tubules",
+    "description": "scientific article published on 01 September 1966",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q72799132",
+    "cached_at": "2025-09-26T14:45:20.817937"
+  },
+  "control centers": {
+    "qid": "Q83406334",
+    "label": "Control centers design for ergonomics and safety",
+    "description": "scientific article published on 01 January 2012",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q83406334",
+    "cached_at": "2025-09-26T14:45:21.429909"
+  },
+  "a lack": {
+    "qid": "Q54999863",
+    "label": "A lackey",
+    "description": "operatic character in the opera Ariadne auf Naxos by Richard Strauss",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q54999863",
+    "cached_at": "2025-09-26T14:45:22.077004"
+  },
+  "core": {
+    "qid": "Q23595",
+    "label": "center",
+    "description": "middle point, in some sense, of an object in geometry",
+    "aliases": [
+      "core"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q23595",
+    "cached_at": "2025-09-26T14:45:22.716590"
+  },
+  "patient": {
+    "qid": "Q181600",
+    "label": "patient",
+    "description": "person who takes a medical treatment or is subject of a case study",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q181600",
+    "cached_at": "2025-09-26T14:45:23.474008"
+  },
+  "cytosol": {
+    "qid": "Q220599",
+    "label": "cytosol",
+    "description": "part of the cytoplasm that does not contain organelles but which does contain other particulate matter, such as protein complexes",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q220599",
+    "cached_at": "2025-09-26T14:45:24.113876"
+  },
+  "ammonia": {
+    "qid": "Q21996249",
+    "label": "Ammonia",
+    "description": "genus of foraminifers",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q21996249",
+    "cached_at": "2025-09-26T14:45:24.737580"
+  },
+  "dendrites branch": null,
+  "a deliberate distinction": null,
+  "distinction": {
+    "qid": "Q1229501",
+    "label": "distinction",
+    "description": "social phenomenon whereby members of one social group differentiate themselves intentionally or unintentionally from members of other social groups",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q1229501",
+    "cached_at": "2025-09-26T14:45:26.598966"
+  },
+  "diet": {
+    "qid": "Q474191",
+    "label": "diet",
+    "description": "sum of food consumed by an organism",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q474191",
+    "cached_at": "2025-09-26T14:45:27.273161"
+  },
+  "a dramatic impact": null,
+  "health": {
+    "qid": "Q12147",
+    "label": "health",
+    "description": "desirable level of functional or metabolic efficiency of a living being",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q12147",
+    "cached_at": "2025-09-26T14:45:28.469472"
+  },
+  "a dark tea": null,
+  "ankle": {
+    "qid": "Q168002",
+    "label": "ankle",
+    "description": "region where the foot and the leg meet",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q168002",
+    "cached_at": "2025-09-26T14:45:29.681146"
+  },
+  "distinct mechanisms": {
+    "qid": "Q116727196",
+    "label": "Distinct mechanisms underlie regeneration of mechanosensory hair cells in zebrafish",
+    "description": "doctoral thesis by Eric D. Thomas, 2018",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q116727196",
+    "cached_at": "2025-09-26T14:45:30.285765"
+  },
+  "andreas": {
+    "qid": "Q4926263",
+    "label": "Andreas",
+    "description": "male given name",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q4926263",
+    "cached_at": "2025-09-26T14:45:30.951898"
+  },
+  "a fistgrows": null,
+  "attack": {
+    "qid": "Q280658",
+    "label": "forward",
+    "description": "association football position played near the opponent's goal",
+    "aliases": [
+      "attacker"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q280658",
+    "cached_at": "2025-09-26T14:45:32.189316"
+  },
+  "each bone": null,
+  "a polymer": {
+    "qid": "Q61980860",
+    "label": "A Polymerase Chain Reaction (PCR) - Based Method to Improve Antibiotic Prescribing for Pneumonia",
+    "description": "clinical trial",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q61980860",
+    "cached_at": "2025-09-26T14:47:16.751435"
+  },
+  "alkene": {
+    "qid": "Q81406",
+    "label": "alkene",
+    "description": "unsaturated chemical compound containing one carbon-to-carbon double bond",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q81406",
+    "cached_at": "2025-09-26T14:47:17.391208"
+  },
+  "zieglernatta": null,
+  "zieglernatta catalysts": null,
+  "highdensity polyethylene": null,
+  "bottle": {
+    "qid": "Q80228",
+    "label": "bottle",
+    "description": "closable cylindrical container for transport and storage of liquids and gases",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q80228",
+    "cached_at": "2025-09-26T14:47:19.900454"
+  },
+  "catalyst": {
+    "qid": "Q12385831",
+    "label": "catalyst",
+    "description": "substance that increases chemical reaction speed, and which is conserved after the reaction",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q12385831",
+    "cached_at": "2025-09-26T14:47:20.536602"
+  },
+  "propylene polymerization": {
+    "qid": "Q43152235",
+    "label": "Propylene polymerization to high molecular weight atactic polypropylene and copolymerization with 1-hexene using monocyclopentadienyl titanium catalysts",
+    "description": "scientific article published on January 22, 2010",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q43152235",
+    "cached_at": "2025-09-26T14:47:21.294506"
+  },
+  "propylene": {
+    "qid": "Q151324",
+    "label": "propylene",
+    "description": "chemical compound",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q151324",
+    "cached_at": "2025-09-26T14:47:21.970784"
+  },
+  "socalled highmolecularweight polyethylene": null,
+  "the active form": {
+    "qid": "Q24648715",
+    "label": "The active form of the steroidogenic acute regulatory protein, StAR, appears to be a molten globule",
+    "description": "scientific article",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q24648715",
+    "cached_at": "2025-09-26T14:47:23.260178"
+  },
+  "the linear polyethylene": null,
+  "triethylaluminum": {
+    "qid": "Q416298",
+    "label": "triethylaluminum",
+    "description": "chemical compound",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q416298",
+    "cached_at": "2025-09-26T14:47:25.791819"
+  },
+  "ultrahighmolecularweight": null,
+  "ultrahighmolecularweight polyethylene": null,
+  "amu": {
+    "qid": "Q483261",
+    "label": "dalton",
+    "description": "unit of mass defined as ¹⁄₁₂ of the mass of a carbon-12 atom",
+    "aliases": [
+      "amu"
+    ],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q483261",
+    "cached_at": "2025-09-26T14:47:27.620288"
+  },
+  "a titanium compound": null,
+  "alkylaluminum": {
+    "qid": "Q57087774",
+    "label": "Alkylaluminum-catalyzed Claisen expansion reactions. Scope and stereochemistry",
+    "description": "",
+    "aliases": [],
+    "wikidata_url": "https://www.wikidata.org/wiki/Q57087774",
+    "cached_at": "2025-09-26T14:47:29.486010"
   }
 }
