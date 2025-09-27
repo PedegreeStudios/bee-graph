@@ -69,6 +69,21 @@ class WikidataClient:
         
         return entity
     
+    def search_entity_cached_only(self, term: str) -> Optional[WikidataEntity]:
+        """Search for entity using only cached data (no API calls)."""
+        cached_data = self.cache_manager.get_cached_concept(term)
+        if cached_data is not None:
+            with self._stats_lock:
+                self.cache_hits += 1
+            if cached_data:  # Not a null cache entry
+                entity_data = {k: v for k, v in cached_data.items() 
+                              if k in ['qid', 'label', 'description', 'aliases', 'wikidata_url']}
+                return WikidataEntity(**entity_data)
+            return None
+        
+        # Return None if not in cache (no API call)
+        return None
+    
     def _api_search_with_rate_limit(self, term: str) -> Optional[WikidataEntity]:
         """Make API request with global rate limiting across all threads."""
         global _last_api_call

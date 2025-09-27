@@ -70,10 +70,10 @@ git submodule [link]
 #### Import Your Textbook and Extract Concepts
 
 ```bash 
-python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --extract-concepts
+python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle
 
 #if you need to reimport and delete the database, please run (be careful): 
-python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
+#python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --cleanup
 ```
 
 #### Run the LLM client to start querying the database 

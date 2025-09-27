@@ -54,9 +54,9 @@ from textbook_parse.concept_extraction.main import ConceptExtractionSystem
 from neo4j_utils import Neo4jSchemaSetup, Neo4jNodeCreator, Neo4jRelationshipCreator
 from neo4j import GraphDatabase
 
-# Configure logging - Critical errors only
+# Configure logging - Show INFO level and above
 logging.basicConfig(
-    level=logging.CRITICAL,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -64,6 +64,9 @@ logger = logging.getLogger(__name__)
 # Suppress verbose logging from external libraries
 logging.getLogger('neo4j').setLevel(logging.CRITICAL)
 logging.getLogger('textbook_parse').setLevel(logging.CRITICAL)
+
+# Enable INFO logging for concept extraction
+logging.getLogger('textbook_parse.concept_extraction').setLevel(logging.INFO)
 
 
 def check_collection_exists(uri: str, username: str, password: str, database: str, collection_name: str) -> bool:
@@ -145,7 +148,7 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.option('--force', is_flag=True, help='Force loading even if collections already exist')
 @click.option('--extract-concepts', default=True, help='Extract concepts after loading textbook content')
 @click.option('--no-extract-concepts', is_flag=True, help='Skip concept extraction')
-@click.option('--concept-workers', type=int, default=8, help='Number of workers for concept extraction (default: 4)')
+@click.option('--concept-workers', type=int, default=4, help='Number of workers for concept extraction (default: 4)')
 @click.option('--concept-batch-size', type=int, default=100, help='Batch size for concept extraction (default: 50)')
 def main(textbook_path: str, collection: str, uri: str, username: str, password: str, database: str,
          setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool, no_extract_concepts: bool, concept_workers: int, concept_batch_size: int):

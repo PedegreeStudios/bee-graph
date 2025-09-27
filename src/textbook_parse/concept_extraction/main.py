@@ -199,7 +199,7 @@ class ConceptExtractionSystem:
     
     def process_sentences(self, batch_size: int = 50, max_sentences: Optional[int] = None, 
                          progress_callback=None) -> Dict[str, int]:
-        """Process sentences without concept nodes using multi-threading.
+        """Process sentences with optimized caching strategy: cached entries first, then API calls.
         
         Args:
             batch_size: Number of sentences to process per thread batch
@@ -209,7 +209,7 @@ class ConceptExtractionSystem:
         Returns:
             Dictionary with processing statistics
         """
-        logger.info("Starting multi-threaded concept extraction process...")
+        logger.info("Starting optimized concept extraction process (cached entries first)...")
         
         # Get ALL sentences without concepts at once
         sentences = self.concept_manager.get_all_sentences_without_concepts()
@@ -222,53 +222,206 @@ class ConceptExtractionSystem:
         if max_sentences:
             sentences = sentences[:max_sentences]
         
-        logger.info(f"Processing {len(sentences)} sentences with {self.max_workers} workers...")
+        logger.info(f"Processing {len(sentences)} sentences with optimized caching strategy...")
         
-        # Use a simpler approach: process sentences individually in parallel
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit individual sentences as jobs
+        # Phase 1: Process sentences with cached entities only (fast)
+        logger.info("🚀 Phase 1: Processing sentences with cached entities...")
+        cached_stats = self._process_cached_entities(sentences, progress_callback)
+        
+        # Phase 2: Process sentences that still need API calls (slower)
+        # Note: We process ALL original sentences again, but only make API calls for non-cached entities
+        logger.info("🌐 Phase 2: Processing sentences requiring API calls...")
+        api_stats = self._process_api_calls(sentences, progress_callback)
+        
+        # Combine statistics
+        final_stats = {}
+        for key in cached_stats:
+            final_stats[key] = cached_stats[key] + api_stats.get(key, 0)
+        
+        # Add aggregated client stats
+        client_stats = self._aggregate_client_stats()
+        final_stats.update(client_stats)
+        
+        logger.info("✅ Completed optimized processing!")
+        logger.info(f"Completed optimized processing. Stats: {final_stats}")
+        return final_stats
+    
+    def _process_cached_entities(self, sentences: List[Dict], progress_callback=None) -> Dict[str, int]:
+        """Process sentences using only cached Wikidata entities (fast phase)."""
+        logger.info("Processing cached entities phase...")
+        
+        # Use more workers for cached processing since it's fast
+        cached_workers = min(self.max_workers * 2, 16)  # More workers for cached lookups
+        
+        with ThreadPoolExecutor(max_workers=cached_workers) as executor:
             future_to_sentence = {
-                executor.submit(self._process_single_sentence, sentence): sentence 
+                executor.submit(self._process_single_sentence_cached_only, sentence): sentence 
                 for sentence in sentences
             }
             
-            # Process completed sentences
             completed_count = 0
-            for future in as_completed(future_to_sentence):  # No timeout - wait for all futures
+            for future in as_completed(future_to_sentence):
                 try:
-                    sentence_stats = future.result(timeout=30)  # 30 second timeout per sentence
+                    sentence_stats = future.result(timeout=10)  # Shorter timeout for cached
                     
                     # Update global statistics
                     for key, value in sentence_stats.items():
                         self.stats.increment(key, value)
                     
-                    # Update progress
+                    if progress_callback:
+                        progress_callback(1)
+                    
+                    completed_count += 1
+                    if completed_count % 100 == 0:
+                        percentage = (completed_count / len(sentences)) * 100
+                        logger.info(f"Cached phase: {completed_count}/{len(sentences)} ({percentage:.1f}%)")
+                        
+                except TimeoutError:
+                    sentence = future_to_sentence[future]
+                    logger.error(f"Timeout processing cached sentence: {sentence.get('sentence_id', 'unknown')}")
+                except Exception as e:
+                    sentence = future_to_sentence[future]
+                    logger.error(f"Error processing cached sentence {sentence.get('sentence_id', 'unknown')}: {e}")
+        
+        return self.stats.get_stats()
+    
+    def _process_api_calls(self, sentences: List[Dict], progress_callback=None) -> Dict[str, int]:
+        """Process sentences requiring API calls (slow phase with rate limiting)."""
+        logger.info("Processing API calls phase...")
+        
+        # Use fewer workers for API calls due to rate limiting
+        api_workers = max(1, self.max_workers // 2)
+        
+        with ThreadPoolExecutor(max_workers=api_workers) as executor:
+            future_to_sentence = {
+                executor.submit(self._process_single_sentence_api_only, sentence): sentence 
+                for sentence in sentences
+            }
+            
+            completed_count = 0
+            for future in as_completed(future_to_sentence):
+                try:
+                    sentence_stats = future.result(timeout=60)  # Longer timeout for API calls
+                    
+                    # Update global statistics
+                    for key, value in sentence_stats.items():
+                        self.stats.increment(key, value)
+                    
                     if progress_callback:
                         progress_callback(1)
                     
                     completed_count += 1
                     if completed_count % 10 == 0:
                         percentage = (completed_count / len(sentences)) * 100
-                        print(f"Progress: {completed_count}/{len(sentences)} ({percentage:.1f}%)")
-                        logger.info(f"Completed {completed_count}/{len(sentences)} sentences")
+                        logger.info(f"API phase: {completed_count}/{len(sentences)} ({percentage:.1f}%)")
                         
                 except TimeoutError:
                     sentence = future_to_sentence[future]
-                    logger.error(f"Timeout processing sentence: {sentence.get('sentence_id', 'unknown')}")
+                    logger.error(f"Timeout processing API sentence: {sentence.get('sentence_id', 'unknown')}")
                 except Exception as e:
                     sentence = future_to_sentence[future]
-                    logger.error(f"Error processing sentence {sentence.get('sentence_id', 'unknown')}: {e}")
+                    logger.error(f"Error processing API sentence {sentence.get('sentence_id', 'unknown')}: {e}")
         
-        # Final progress message
-        print(f"Completed all {len(sentences)} sentences!")
+        return self.stats.get_stats()
+    
+    def _process_single_sentence_cached_only(self, sentence_data: Dict) -> Dict[str, int]:
+        """Process a single sentence using only cached entities (fast)."""
+        thread_id = threading.get_ident()
         
-        # Add aggregated client stats
-        client_stats = self._aggregate_client_stats()
-        final_stats = self.stats.get_stats()
-        final_stats.update(client_stats)
+        local_stats = {
+            'processed_sentences': 0,
+            'concepts_created': 0,
+            'entities_extracted': 0,
+            'wikidata_lookups': 0
+        }
         
-        logger.info(f"Completed multi-threaded processing. Stats: {final_stats}")
-        return final_stats
+        try:
+            sentence_id = sentence_data['sentence_id']
+            content = sentence_data['content']
+            
+            if not content or len(content.strip()) < 10:
+                local_stats['processed_sentences'] = 1
+                return local_stats
+            
+            entity_extractor, wikidata_client = self._get_thread_components()
+            entities = entity_extractor.extract_entities(content)
+            local_stats['entities_extracted'] = len(entities)
+            
+            if not entities:
+                local_stats['processed_sentences'] = 1
+                return local_stats
+            
+            # Only process entities that are cached
+            concepts_created = 0
+            for entity_text in entities:
+                local_stats['wikidata_lookups'] += 1
+                wikidata_entity = wikidata_client.search_entity_cached_only(entity_text)
+                
+                if wikidata_entity and wikidata_entity.qid:
+                    if self.concept_manager.create_concept_with_relationship(sentence_id, wikidata_entity):
+                        concepts_created += 1
+            
+            local_stats['concepts_created'] = concepts_created
+            local_stats['processed_sentences'] = 1
+            
+        except Exception as e:
+            logger.error(f"Thread {thread_id}: Error processing cached sentence: {e}")
+            local_stats['processed_sentences'] = 1
+        
+        return local_stats
+    
+    def _process_single_sentence_api_only(self, sentence_data: Dict) -> Dict[str, int]:
+        """Process a single sentence using API calls for non-cached entities only."""
+        thread_id = threading.get_ident()
+        
+        local_stats = {
+            'processed_sentences': 0,
+            'concepts_created': 0,
+            'entities_extracted': 0,
+            'wikidata_lookups': 0
+        }
+        
+        try:
+            sentence_id = sentence_data['sentence_id']
+            content = sentence_data['content']
+            
+            if not content or len(content.strip()) < 10:
+                local_stats['processed_sentences'] = 1
+                return local_stats
+            
+            entity_extractor, wikidata_client = self._get_thread_components()
+            entities = entity_extractor.extract_entities(content)
+            local_stats['entities_extracted'] = len(entities)
+            
+            if not entities:
+                local_stats['processed_sentences'] = 1
+                return local_stats
+            
+            # Process entities: check cache first, then API call if not cached
+            concepts_created = 0
+            for entity_text in entities:
+                local_stats['wikidata_lookups'] += 1
+                
+                # Check if entity is already cached
+                cached_entity = wikidata_client.search_entity_cached_only(entity_text)
+                if cached_entity:
+                    # Already processed in Phase 1, skip
+                    continue
+                
+                # Not cached, make API call
+                wikidata_entity = wikidata_client.search_entity(entity_text)
+                if wikidata_entity and wikidata_entity.qid:
+                    if self.concept_manager.create_concept_with_relationship(sentence_id, wikidata_entity):
+                        concepts_created += 1
+            
+            local_stats['concepts_created'] = concepts_created
+            local_stats['processed_sentences'] = 1
+            
+        except Exception as e:
+            logger.error(f"Thread {thread_id}: Error processing API-only sentence: {e}")
+            local_stats['processed_sentences'] = 1
+        
+        return local_stats
     
     def _aggregate_client_stats(self) -> Dict[str, int]:
         """Aggregate statistics from all Wikidata clients."""

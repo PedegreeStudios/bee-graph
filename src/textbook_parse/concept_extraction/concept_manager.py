@@ -84,7 +84,7 @@ class ConceptManager:
                     wikidata_url=wikidata_entity.wikidata_url
                 )
                 
-                record = result.single()
+                record = result.single()  # Get the single record from the result
                 if record:
                     return True
                 return False
@@ -99,7 +99,7 @@ class ConceptManager:
         
         with self.driver.session() as session:
             result = session.run(query)
-            record = result.single()
+            record = result.single()  # Get the single record from the result
             return record['total'] if record else 0
     
     def get_sentences_with_concepts_count(self) -> int:
@@ -111,5 +111,5 @@ class ConceptManager:
         
         with self.driver.session() as session:
             result = session.run(query)
-            record = result.single()
+            record = result.single()  # Get the single record from the result
             return record['total'] if record else 0
