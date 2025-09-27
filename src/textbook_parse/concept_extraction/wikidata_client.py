@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Global rate limiting for all WikidataClient instances
 _api_lock = threading.Lock()
 _last_api_call = 0
-_min_delay = 0.5  # Minimum delay between API calls (seconds)
+_min_delay = 1.0  # Minimum delay between API calls (seconds)
 
 class WikidataEntity:
     """Represents a Wikidata entity."""

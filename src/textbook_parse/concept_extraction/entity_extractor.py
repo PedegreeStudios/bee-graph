@@ -26,12 +26,12 @@ class EntityExtractor:
         doc = self.nlp(text)
         entities = set()
         
-        # Extract named entities
+        # Extract named entities (expanded for educational content)
         for ent in doc.ents:
-            if ent.label_ in ['PERSON', 'ORG', 'GPE', 'PRODUCT', 'EVENT', 'WORK_OF_ART', 'LAW', 'LANGUAGE']:
-                clean_entity = self._clean_entity_text(ent.text)
-                if self._is_valid_entity(clean_entity):
-                    entities.add(clean_entity)
+            # Extract ALL named entities for educational content, not just specific types
+            clean_entity = self._clean_entity_text(ent.text)
+            if self._is_valid_entity(clean_entity):
+                entities.add(clean_entity)
         
         # Extract meaningful nouns and proper nouns
         for token in doc:
@@ -44,11 +44,11 @@ class EntityExtractor:
                 if self._is_valid_entity(clean_token):
                     entities.add(clean_token)
         
-        # Extract noun phrases for compound concepts
+        # Extract noun phrases for compound concepts (expanded for scientific terms)
         for chunk in doc.noun_chunks:
             if len(chunk.text.split()) > 1:  # Multi-word phrases
                 clean_phrase = self._clean_entity_text(chunk.text)
-                if self._is_valid_entity(clean_phrase) and len(clean_phrase.split()) <= 3:
+                if self._is_valid_entity(clean_phrase) and len(clean_phrase.split()) <= 4:  # Allow longer phrases
                     entities.add(clean_phrase)
         
         # Filter out generic terms
@@ -94,7 +94,8 @@ class EntityExtractor:
             'sentence', 'paragraph', 'text', 'content', 'information', 'data',
             'thing', 'way', 'time', 'year', 'work', 'case', 'group', 'number',
             'system', 'process', 'method', 'result', 'study', 'research',
-            'analysis', 'example', 'type', 'kind', 'form', 'part', 'area'
+            'analysis', 'example', 'type', 'kind', 'form', 'part', 'area',
+            'use', 'used', 'using', 'made', 'making', 'take', 'taken', 'taking'
         }
         
         return entity.lower() in generic_terms

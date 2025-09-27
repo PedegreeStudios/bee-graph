@@ -178,7 +178,7 @@ class ConceptExtractionSystem:
                 local_stats['processed_sentences'] = 1
                 return local_stats
             
-            # Try to find Wikidata match for entities (take first valid match)
+            # Try to find Wikidata match for all entities (allow multiple concepts per sentence)
             for entity_text in entities:
                 local_stats['wikidata_lookups'] += 1
                 wikidata_entity = wikidata_client.search_entity(entity_text)
@@ -186,8 +186,8 @@ class ConceptExtractionSystem:
                 if wikidata_entity and wikidata_entity.qid:
                     # Create concept and relationship
                     if self.concept_manager.create_concept_with_relationship(sentence_id, wikidata_entity):
-                        local_stats['concepts_created'] = 1
-                        break  # One concept per sentence for now
+                        local_stats['concepts_created'] += 1  # Count all concepts created
+                        # Continue processing other entities - no break
             
             local_stats['processed_sentences'] = 1
             
@@ -234,7 +234,7 @@ class ConceptExtractionSystem:
             
             # Process completed sentences
             completed_count = 0
-            for future in as_completed(future_to_sentence, timeout=600):  # 10 minute total timeout
+            for future in as_completed(future_to_sentence):  # No timeout - wait for all futures
                 try:
                     sentence_stats = future.result(timeout=30)  # 30 second timeout per sentence
                     
@@ -247,7 +247,9 @@ class ConceptExtractionSystem:
                         progress_callback(1)
                     
                     completed_count += 1
-                    if completed_count % 100 == 0:
+                    if completed_count % 10 == 0:
+                        percentage = (completed_count / len(sentences)) * 100
+                        print(f"Progress: {completed_count}/{len(sentences)} ({percentage:.1f}%)")
                         logger.info(f"Completed {completed_count}/{len(sentences)} sentences")
                         
                 except TimeoutError:
@@ -256,6 +258,9 @@ class ConceptExtractionSystem:
                 except Exception as e:
                     sentence = future_to_sentence[future]
                     logger.error(f"Error processing sentence {sentence.get('sentence_id', 'unknown')}: {e}")
+        
+        # Final progress message
+        print(f"Completed all {len(sentences)} sentences!")
         
         # Add aggregated client stats
         client_stats = self._aggregate_client_stats()

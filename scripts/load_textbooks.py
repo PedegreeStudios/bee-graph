@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 import click
 import logging
-from tqdm import tqdm
+# Removed tqdm import to avoid threading issues
 import time
 from datetime import datetime, timedelta
 
@@ -135,19 +135,20 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
 @click.option('--database', default=None, help='Database name (if not provided, loads from config)')
 @click.option('--setup-schema', is_flag=True, help='Set up database schema before import')
-@click.option('--dry-run', is_flag=True, help='Parse files without importing to database')
+@click.option('--dry-run', default=False, is_flag=True, help='Parse files without importing to database')
 @click.option('--list-collections', is_flag=True, help='List available collections and exit')
 @click.option('--verify', is_flag=True, help='Verify import after completion')
-@click.option('--bulk-import', is_flag=True, help='Use bulk import for better performance with large datasets')
+@click.option('--bulk-import', default=True, help='Use bulk import for better performance with large datasets')
 @click.option('--batch-size', default=2000, help='Batch size for bulk operations (default: 2000)')
 @click.option('--cleanup', is_flag=True, help='Clean up existing data (sample data and textbooks) before import')
 @click.option('--full-cleanup', is_flag=True, help='Completely clear the entire database before import (removes all nodes and relationships)')
 @click.option('--force', is_flag=True, help='Force loading even if collections already exist')
-@click.option('--extract-concepts', is_flag=True, help='Extract concepts after loading textbook content')
+@click.option('--extract-concepts', default=True, help='Extract concepts after loading textbook content')
+@click.option('--no-extract-concepts', is_flag=True, help='Skip concept extraction')
 @click.option('--concept-workers', type=int, default=8, help='Number of workers for concept extraction (default: 4)')
 @click.option('--concept-batch-size', type=int, default=100, help='Batch size for concept extraction (default: 50)')
 def main(textbook_path: str, collection: str, uri: str, username: str, password: str, database: str,
-         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool, concept_workers: int, concept_batch_size: int):
+         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool, no_extract_concepts: bool, concept_workers: int, concept_batch_size: int):
     """Load OpenStax textbook content into Neo4j database using XML parser.
     
     This script parses OpenStax textbook XML files and loads the content into a Neo4j database.
@@ -376,16 +377,16 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
             else:
                 collections_to_load = collection_files
             
-            # Create progress bar for collections (only if there are collections to load)
+            # Load collections with simple progress logging
             if collections_to_load:
-                with tqdm(total=len(collections_to_load), desc="Loading collections", unit="collection") as pbar:
-                    for collection_file in collections_to_load:
-                        collection_name = collection_file.stem
-                        pbar.set_description(f"Loading {collection_name}")
-                        success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
-                        if not success:
-                            print(f"\nFailed to load collection: {collection_name}")
-                        pbar.update(1)
+                print(f"Loading {len(collections_to_load)} collections...")
+                for i, collection_file in enumerate(collections_to_load, 1):
+                    collection_name = collection_file.stem
+                    print(f"Loading collection {i}/{len(collections_to_load)}: {collection_name}")
+                    success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
+                    if not success:
+                        print(f"\nFailed to load collection: {collection_name}")
+                print("Collection loading completed!")
         
         # Verify import if requested
         if verify and not dry_run:
@@ -397,6 +398,10 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 print(f"   Total relationships: {verification['total_relationships']}")
             else:
                 print("Import verification failed")
+        
+        # Handle concept extraction flag logic
+        if no_extract_concepts:
+            extract_concepts = False
         
         # Extract concepts if requested
         if extract_concepts and not dry_run:
@@ -421,14 +426,13 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                     """)
                     total_count = result.single()["total"]
                 
-                # Create progress bar
-                with tqdm(total=total_count, desc="Processing sentences", unit="sentence", 
-                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
-                    concept_stats = concept_system.process_sentences(
-                        batch_size=concept_batch_size,
-                        max_sentences=total_count,
-                        progress_callback=lambda processed: pbar.update(processed)
-                    )
+                # Process sentences with simple progress logging
+                print(f"Processing {total_count} sentences for concept extraction...")
+                concept_stats = concept_system.process_sentences(
+                    batch_size=concept_batch_size,
+                    max_sentences=total_count,
+                    progress_callback=None  # Disable progress tracking to avoid threading issues
+                )
                 
                 print("\n=== CONCEPT EXTRACTION COMPLETE ===")
                 print(f"Sentences processed: {concept_stats['processed_sentences']}")

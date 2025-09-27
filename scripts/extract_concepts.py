@@ -21,7 +21,6 @@ import sys
 from pathlib import Path
 import click
 import logging
-from tqdm import tqdm
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -100,21 +99,21 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         # Run extraction
         print(f"\nStarting multi-threaded concept extraction...")
         
-        # Get total sentences to process for progress bar
+        # Get total sentences to process
         total_sentences = system.concept_manager.get_sentences_without_concepts(limit=10000)
         total_count = len(total_sentences)
         
         if max_sentences:
             total_count = min(total_count, max_sentences)
         
-        # Create progress bar
-        with tqdm(total=total_count, desc="Processing sentences", unit="sentence", 
-                  bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
-            stats = system.process_sentences(
-                batch_size=batch_size,
-                max_sentences=max_sentences,
-                progress_callback=lambda processed: pbar.update(processed)
-            )
+        print(f"Total sentences to process: {total_count}")
+        print(f"Using {max_workers} workers with batch size {batch_size}")
+        
+        stats = system.process_sentences(
+            batch_size=batch_size,
+            max_sentences=max_sentences,
+            progress_callback=None  # Disable progress tracking
+        )
         
         print("\n=== EXTRACTION COMPLETE ===")
         print(f"Sentences processed: {stats['processed_sentences']}")
