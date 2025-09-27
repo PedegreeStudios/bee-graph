@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Any
@@ -9,13 +10,14 @@ from typing import Dict, Optional, Any
 logger = logging.getLogger(__name__)
 
 class CacheManager:
-    """Manages JSON cache for Wikidata lookups to avoid duplicate API calls."""
+    """Thread-safe JSON cache manager for Wikidata lookups."""
     
     def __init__(self, cache_file_path: str = "wikidata_cache.json"):
         self.cache_file = Path(cache_file_path)
         self.cache = {}
         self._loaded = False
-        logger.info("Cache manager initialized (lazy loading enabled)")
+        self._lock = threading.RLock()  # Reentrant lock for nested locking
+        logger.info("Thread-safe cache manager initialized (lazy loading enabled)")
     
     def _load_cache(self) -> Dict[str, Any]:
         """Load existing cache or create empty one."""
@@ -30,18 +32,22 @@ class CacheManager:
         return {}
     
     def _ensure_loaded(self):
-        """Load cache only when first needed."""
+        """Thread-safe cache loading - only load when first needed."""
         if not self._loaded:
-            self.cache = self._load_cache()
-            self._loaded = True
+            with self._lock:
+                # Double-check pattern
+                if not self._loaded:
+                    self.cache = self._load_cache()
+                    self._loaded = True
     
     def get_cached_concept(self, entity_text: str) -> Optional[Dict[str, Any]]:
-        """Get cached Wikidata info for entity."""
+        """Thread-safe get cached Wikidata info for entity."""
         self._ensure_loaded()
-        return self.cache.get(entity_text.lower())
+        with self._lock:
+            return self.cache.get(entity_text.lower())
     
     def cache_concept(self, entity_text: str, wikidata_info: Optional[Dict[str, Any]]) -> None:
-        """Cache Wikidata info for entity (or None if not found)."""
+        """Thread-safe cache Wikidata info for entity (or None if not found)."""
         self._ensure_loaded()
         
         cache_entry = None
@@ -51,39 +57,44 @@ class CacheManager:
                 'cached_at': datetime.now().isoformat()
             }
         
-        self.cache[entity_text.lower()] = cache_entry
-        self._save_cache()
+        with self._lock:
+            self.cache[entity_text.lower()] = cache_entry
+            # Save immediately for thread safety and data persistence
+            self._save_cache_unsafe()
     
-    def _save_cache(self) -> None:
-        """Save cache to file."""
+    def _save_cache_unsafe(self) -> None:
+        """Save cache to file - must be called within lock."""
         try:
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
+            # Write to temporary file first, then atomic rename
+            temp_file = self.cache_file.with_suffix('.tmp')
+            with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(self.cache, f, indent=2, ensure_ascii=False)
+            temp_file.replace(self.cache_file)
         except Exception as e:
             logger.warning(f"Could not save cache: {e}")
     
     def optimize_cache_file(self):
-        """Sort cache entries for better performance and compression."""
+        """Thread-safe cache optimization."""
         self._ensure_loaded()
         
-        # Sort by key for better compression and readability
-        sorted_cache = dict(sorted(self.cache.items()))
+        with self._lock:
+            # Sort by key for better compression and readability
+            sorted_cache = dict(sorted(self.cache.items()))
+            self.cache = sorted_cache
+            self._save_cache_unsafe()
         
-        with open(self.cache_file, 'w', encoding='utf-8') as f:
-            json.dump(sorted_cache, f, indent=2, ensure_ascii=False)
-        
-        self.cache = sorted_cache
         logger.info("Cache file optimized and sorted")
     
     def get_stats(self) -> Dict[str, int]:
-        """Get cache statistics."""
+        """Thread-safe cache statistics."""
         self._ensure_loaded()
         
-        cached_entries = sum(1 for v in self.cache.values() if v is not None)
-        null_entries = sum(1 for v in self.cache.values() if v is None)
-        
-        return {
-            'total_entries': len(self.cache),
-            'cached_concepts': cached_entries,
-            'null_entries': null_entries
-        }
+        with self._lock:
+            cached_entries = sum(1 for v in self.cache.values() if v is not None)
+            null_entries = sum(1 for v in self.cache.values() if v is None)
+            
+            return {
+                'total_entries': len(self.cache),
+                'cached_concepts': cached_entries,
+                'null_entries': null_entries
+            }

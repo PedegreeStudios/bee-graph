@@ -19,8 +19,8 @@ FEATURES:
 - Concept extraction (planned future feature)
 
 Usage:
-    # Load all collections (default behavior)
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --batch-size 2000 --extract-concepts
+    # Load all collections with multi-threaded concept extraction
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --batch-size 2000 --extract-concepts --concept-workers 4 --concept-batch-size 50
     
     # Load specific collection
     python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e.collection
@@ -28,8 +28,8 @@ Usage:
     # List available collections
     python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --list-collections
     
-    # Bulk import with cleanup
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
+    # Bulk import with cleanup and multi-threaded concept extraction
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup --extract-concepts --concept-workers 6
     
     # Dry run to test without changes
     python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
@@ -144,8 +144,10 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.option('--full-cleanup', is_flag=True, help='Completely clear the entire database before import (removes all nodes and relationships)')
 @click.option('--force', is_flag=True, help='Force loading even if collections already exist')
 @click.option('--extract-concepts', is_flag=True, help='Extract concepts after loading textbook content')
+@click.option('--concept-workers', type=int, default=8, help='Number of workers for concept extraction (default: 4)')
+@click.option('--concept-batch-size', type=int, default=100, help='Batch size for concept extraction (default: 50)')
 def main(textbook_path: str, collection: str, uri: str, username: str, password: str, database: str,
-         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool):
+         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool, concept_workers: int, concept_batch_size: int):
     """Load OpenStax textbook content into Neo4j database using XML parser.
     
     This script parses OpenStax textbook XML files and loads the content into a Neo4j database.
@@ -153,17 +155,17 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
     By default, it will skip collections that already exist in the database.
     
     Examples:
-        # Load all collections (default behavior)
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle
+        # Load all collections with multi-threaded concept extraction
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --extract-concepts --concept-workers 4
         
         # Load specific collection
         python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e.collection
         
-        # Bulk import with cleanup for better performance
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup
+        # Bulk import with cleanup and high-performance concept extraction
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup --extract-concepts --concept-workers 6 --concept-batch-size 100
         
-        # Force reload existing collections
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --force
+        # Force reload existing collections with multi-threading
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --force --extract-concepts
         
         # Dry run to test without changes
         python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
@@ -398,13 +400,14 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         
         # Extract concepts if requested
         if extract_concepts and not dry_run:
-            print("\nStarting concept extraction...")
+            print(f"\nStarting multi-threaded concept extraction with {concept_workers} workers...")
             concept_system = ConceptExtractionSystem(
                 neo4j_uri=uri,
                 neo4j_user=username,
                 neo4j_password=password,
                 neo4j_database=database,
-                cache_file="wikidata_cache.json"
+                cache_file="wikidata_cache.json",
+                max_workers=concept_workers
             )
             
             try:
@@ -422,9 +425,9 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 with tqdm(total=total_count, desc="Processing sentences", unit="sentence", 
                           bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
                     concept_stats = concept_system.process_sentences(
-                        batch_size=50,
+                        batch_size=concept_batch_size,
                         max_sentences=total_count,
-                        progress_callback=lambda processed: pbar.update(1)
+                        progress_callback=lambda processed: pbar.update(processed)
                     )
                 
                 print("\n=== CONCEPT EXTRACTION COMPLETE ===")
@@ -434,6 +437,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 print(f"Wikidata lookups: {concept_stats['wikidata_lookups']}")
                 print(f"API calls made: {concept_stats.get('api_calls', 0)}")
                 print(f"Cache hits: {concept_stats.get('cache_hits', 0)}")
+                print(f"Cache hit rate: {concept_stats.get('cache_hit_rate', 0):.1f}%")
                 
                 if concept_stats['processed_sentences'] > 0:
                     success_rate = concept_stats['concepts_created']/concept_stats['processed_sentences']*100

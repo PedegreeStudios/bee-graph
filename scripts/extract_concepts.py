@@ -6,14 +6,14 @@ This script extracts concepts from existing sentences in a Neo4j database,
 looking them up in Wikidata and creating concept nodes with relationships.
 
 Usage:
-    # Extract concepts from all sentences
+    # Extract concepts from all sentences with 4 workers
     python scripts/extract_concepts.py
     
-    # Extract with specific batch size and limit
-    python scripts/extract_concepts.py --batch-size 25 --max-sentences 100
+    # Extract with specific settings
+    python scripts/extract_concepts.py --max-workers 8 --batch-size 25 --max-sentences 100
     
-    # Test run (dry run equivalent)
-    python scripts/extract_concepts.py --max-sentences 5
+    # Test run
+    python scripts/extract_concepts.py --max-sentences 5 --max-workers 2
 """
 
 import os
@@ -45,19 +45,21 @@ logging.getLogger('neo4j').setLevel(logging.WARNING)
 @click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
 @click.option('--database', default=None, help='Neo4j database name (if not provided, loads from config)')
 @click.option('--max-sentences', type=int, help='Maximum sentences to process (for testing)')
-def main(uri: str, username: str, password: str, database: str, max_sentences: int):
-    """Extract concepts from sentences in Neo4j database using Wikidata.
+@click.option('--max-workers', type=int, default=8, help='Maximum number of worker threads (default: 4)')
+@click.option('--batch-size', type=int, default=100, help='Number of sentences per batch (default: 50)')
+def main(uri: str, username: str, password: str, database: str, max_sentences: int, max_workers: int, batch_size: int):
+    """Extract concepts from sentences in Neo4j database using multi-threaded Wikidata lookup.
     
     This script processes sentences that don't have concept relationships,
-    extracts entities using NLP, looks them up in Wikidata, and creates
+    extracts entities using NLP, looks them up in Wikidata in parallel, and creates
     concept nodes with bidirectional relationships.
     
     Examples:
-        # Extract concepts from all sentences
+        # Extract concepts from all sentences with 4 workers
         python scripts/extract_concepts.py
         
-        # Test with limited sentences
-        python scripts/extract_concepts.py --max-sentences 10
+        # Test with limited sentences and more workers
+        python scripts/extract_concepts.py --max-sentences 100 --max-workers 8
     """
     
     # Load from config if parameters not provided
@@ -69,12 +71,14 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         password = password if password is not None else config_password
         database = database if database is not None else config_database
     
-    print("NEO4J CONCEPT EXTRACTION")
-    print("=" * 40)
+    print("NEO4J CONCEPT EXTRACTION (MULTI-THREADED)")
+    print("=" * 50)
     print(f"Database: {database}")
+    print(f"Workers: {max_workers}")
+    print(f"Batch size: {batch_size}")
     if max_sentences:
         print(f"Max sentences: {max_sentences}")
-    print("=" * 40)
+    print("=" * 50)
     
     # Create and run the system
     system = ConceptExtractionSystem(
@@ -82,7 +86,8 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         neo4j_user=username,
         neo4j_password=password,
         neo4j_database=database,
-        cache_file="wikidata_cache.json"
+        cache_file="wikidata_cache.json",
+        max_workers=max_workers
     )
     
     try:
@@ -93,7 +98,7 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         print(f"  Sentences with concepts: {initial_stats['sentences_with_concepts']}")
         
         # Run extraction
-        print(f"\nStarting concept extraction...")
+        print(f"\nStarting multi-threaded concept extraction...")
         
         # Get total sentences to process for progress bar
         total_sentences = system.concept_manager.get_sentences_without_concepts(limit=10000)
@@ -106,9 +111,9 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         with tqdm(total=total_count, desc="Processing sentences", unit="sentence", 
                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
             stats = system.process_sentences(
-                batch_size=50,
+                batch_size=batch_size,
                 max_sentences=max_sentences,
-                progress_callback=lambda processed: pbar.update(1)
+                progress_callback=lambda processed: pbar.update(processed)
             )
         
         print("\n=== EXTRACTION COMPLETE ===")
@@ -118,6 +123,7 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         print(f"Wikidata lookups: {stats['wikidata_lookups']}")
         print(f"API calls made: {stats.get('api_calls', 0)}")
         print(f"Cache hits: {stats.get('cache_hits', 0)}")
+        print(f"Cache hit rate: {stats.get('cache_hit_rate', 0):.1f}%")
         
         if stats['processed_sentences'] > 0:
             success_rate = stats['concepts_created']/stats['processed_sentences']*100
@@ -129,7 +135,7 @@ def main(uri: str, username: str, password: str, database: str, max_sentences: i
         print(f"  Total concepts in database: {final_stats['total_concepts_in_db']}")
         print(f"  Sentences with concepts: {final_stats['sentences_with_concepts']}")
         
-        print(f"\nConcept extraction completed successfully!")
+        print(f"\nMulti-threaded concept extraction completed successfully!")
         print(f"Neo4j Browser: http://20.29.35.132:7474")
         
     except KeyboardInterrupt:

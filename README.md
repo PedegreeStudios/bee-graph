@@ -34,9 +34,9 @@ source venv/bin/activate
 #### Install requirements
 ```bash
 pip install -r requirements.txt
-````
+```
 
-#### Setup Neo4j database usign Docker
+#### Setup Neo4j database using Docker
 ```bash
 python scripts/setup_database.py --auto-start-docker --create-database
 
@@ -89,12 +89,17 @@ bee-graph/
 ├── env/                 # Virtual environment
 ├── scripts/             # Setup and utility scripts
 │   ├── extract_concepts.py
-│   ├── llm_app.py
 │   ├── load_textbooks.py
 │   ├── setup_database.py
 │   └── setup_neo4j_schema.py
 ├── src/                 # Source code
+│   ├── chainlit_app/   # Chainlit application modules
+│   │   ├── azure_config.py
+│   │   ├── graph_retriever.py
+│   │   └── rag_pipeline.py
 │   ├── config/          # Configuration files
+│   │   ├── azure_llm_lite.json
+│   │   ├── config_loader.py
 │   │   ├── neo4j_config.json
 │   │   └── neo4j_config_template.json
 │   ├── neo4j_utils/     # Neo4j utilities
@@ -114,9 +119,13 @@ bee-graph/
 │   ├── check_db.py
 │   ├── check_relationships.py
 │   ├── check_reverse.py
-│   └── test_hierarchy.py
+│   ├── test_chainlit_setup.py
+│   ├── test_hierarchy.py
+│   └── test_rag_functionality.py
 ├── textbooks/           # OpenStax textbook content
 ├── wikidata_cache.json  # Wikidata cache file
+├── llm_app.py          # LLM application
+├── streamlit_app.py    # Streamlit application
 └── requirements.txt     # Python dependencies
 ```
 
