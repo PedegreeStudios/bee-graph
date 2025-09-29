@@ -13,3 +13,78 @@
 [submodule "textbooks/osbooks-organic-chemistry"]
 	path = textbooks/osbooks-organic-chemistry
 	url = https://github.com/openstax/osbooks-organic-chemistry.git
+[submodule "textbooks/osbooks-principles-marketing"]
+	path = textbooks/osbooks-principles-marketing
+	url = https://github.com/openstax/osbooks-principles-marketing.git
+[submodule "textbooks/osbooks-introduction-business"]
+	path = textbooks/osbooks-introduction-business
+	url = https://github.com/openstax/osbooks-introduction-business.git
+[submodule "textbooks/osbooks-contemporary-mathematics"]
+	path = textbooks/osbooks-contemporary-mathematics
+	url = https://github.com/openstax/osbooks-contemporary-mathematics.git
+[submodule "textbooks/osbooks-introduction-philosophy"]
+	path = textbooks/osbooks-introduction-philosophy
+	url = https://github.com/openstax/osbooks-introduction-philosophy.git
+[submodule "textbooks/osbooks-college-algebra-bundle"]
+	path = textbooks/osbooks-college-algebra-bundle
+	url = https://github.com/openstax/osbooks-college-algebra-bundle.git
+[submodule "textbooks/osbooks-writing-guide"]
+	path = textbooks/osbooks-writing-guide
+	url = https://github.com/openstax/osbooks-writing-guide.git
+[submodule "textbooks/osbooks-american-government"]
+	path = textbooks/osbooks-american-government
+	url = https://github.com/openstax/osbooks-american-government.git
+[submodule "textbooks/osbooks-calculus-bundle"]
+	path = textbooks/osbooks-calculus-bundle
+	url = https://github.com/openstax/osbooks-calculus-bundle.git
+[submodule "textbooks/osbooks-astronomy"]
+	path = textbooks/osbooks-astronomy
+	url = https://github.com/openstax/osbooks-astronomy.git
+[submodule "textbooks/osbooks-psychology"]
+	path = textbooks/osbooks-psychology
+	url = https://github.com/openstax/osbooks-psychology.git
+[submodule "textbooks/osbooks-college-physics-bundle"]
+	path = textbooks/osbooks-college-physics-bundle
+	url = https://github.com/openstax/osbooks-college-physics-bundle.git
+[submodule "textbooks/osbooks-physics"]
+	path = textbooks/osbooks-physics
+	url = https://github.com/openstax/osbooks-physics.git
+[submodule "textbooks/osbooks-prealgebra-bundle"]
+	path = textbooks/osbooks-prealgebra-bundle
+	url = https://github.com/openstax/osbooks-prealgebra-bundle.git
+[submodule "textbooks/osbooks-introduction-sociology"]
+	path = textbooks/osbooks-introduction-sociology
+	url = https://github.com/openstax/osbooks-introduction-sociology.git
+[submodule "textbooks/osbooks-principles-economics-bundle"]
+	path = textbooks/osbooks-principles-economics-bundle
+	url = https://github.com/openstax/osbooks-principles-economics-bundle.git
+[submodule "textbooks/osbooks-business-ethics"]
+	path = textbooks/osbooks-business-ethics
+	url = https://github.com/openstax/osbooks-business-ethics.git
+[submodule "textbooks/osbooks-introductory-statistics-bundle"]
+	path = textbooks/osbooks-introductory-statistics-bundle
+	url = https://github.com/openstax/osbooks-introductory-statistics-bundle.git
+[submodule "textbooks/osbooks-introduction-anthropology"]
+	path = textbooks/osbooks-introduction-anthropology
+	url = https://github.com/openstax/osbooks-introduction-anthropology.git
+[submodule "textbooks/osbooks-playground"]
+	path = textbooks/osbooks-playground
+	url = https://github.com/openstax/osbooks-playground.git
+[submodule "textbooks/template-osbooks-new"]
+	path = textbooks/template-osbooks-new
+	url = https://github.com/openstax/template-osbooks-new.git
+[submodule "textbooks/osbooks-fizyka-bundle"]
+	path = textbooks/osbooks-fizyka-bundle
+	url = https://github.com/openstax/osbooks-fizyka-bundle.git
+[submodule "textbooks/osbooks-principles-finance"]
+	path = textbooks/osbooks-principles-finance
+	url = https://github.com/openstax/osbooks-principles-finance.git
+[submodule "textbooks/osbooks-quimica-bundle"]
+	path = textbooks/osbooks-quimica-bundle
+	url = https://github.com/openstax/osbooks-quimica-bundle.git
+[submodule "textbooks/osbooks-workplace-software-skills"]
+	path = textbooks/osbooks-workplace-software-skills
+	url = https://github.com/openstax/osbooks-workplace-software-skills.git
+[submodule "textbooks/osbooks-fisica-universitaria-bundle"]
+	path = textbooks/osbooks-fisica-universitaria-bundle
+	url = https://github.com/openstax/osbooks-fisica-universitaria-bundle.git
