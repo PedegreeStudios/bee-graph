@@ -396,7 +396,7 @@ class SequentialCollectionProcessor:
                 processed_count += 1
                 
                 # Log progress every 10 entities
-                if processed_count % 10 == 0:
+                if processed_count % 100 == 0:
                     percentage = (processed_count / total_count * 100) if total_count > 0 else 0
                     logger.info(f"  Processed {processed_count}/{total_count} entities ({percentage:.1f}%)")
                 
@@ -472,7 +472,7 @@ class SequentialCollectionProcessor:
                 processed_count += 1
                 
                 # Log progress every 10 entities
-                if processed_count % 10 == 0:
+                if processed_count % 100 == 0:
                     percentage = (processed_count / total_count * 100) if total_count > 0 else 0
                     logger.info(f"  Processed {processed_count}/{total_count} entities ({percentage:.1f}%)")
                 
