@@ -140,6 +140,16 @@ class WikidataClient:
             logger.warning(f"Error searching Wikidata for '{term}': {e}")
             return None
     
+    def _create_entity_from_cache(self, cached_data: Dict) -> WikidataEntity:
+        """Create WikidataEntity object from cached data."""
+        return WikidataEntity(
+            qid=cached_data['qid'],
+            label=cached_data['label'],
+            description=cached_data.get('description', ''),
+            aliases=cached_data.get('aliases', []),
+            wikidata_url=cached_data.get('wikidata_url')
+        )
+    
     def get_stats(self) -> Dict[str, int]:
         """Get thread-safe client statistics."""
         with self._stats_lock:

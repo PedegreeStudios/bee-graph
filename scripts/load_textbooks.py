@@ -62,6 +62,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from textbook_parse.xml_parser import OpenStaxXMLParser
 from textbook_parse.bulk_import import create_bulk_importer
 from textbook_parse.concept_extraction.main import ConceptExtractionSystem
+from textbook_parse.concept_extraction.sequential_processor import SequentialCollectionProcessor
 from neo4j_utils import Neo4jSchemaSetup, Neo4jNodeCreator, Neo4jRelationshipCreator
 from neo4j import GraphDatabase
 
@@ -442,7 +443,7 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
     """Load OpenStax textbook content into Neo4j database with automatic concept extraction.
     
     This script loads textbook content and automatically extracts concepts using Wikidata.
-    By default, it imports all collections and extracts concepts with 4 workers.
+    Collections are processed sequentially (one after another) with multi-threaded concept extraction within each collection.
     
     Examples:
         # Load all collections with concept extraction (default behavior)
@@ -636,9 +637,8 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
         print("Initialized bulk importer (batch size: 2000)")
     
     try:
-        # Always set up schema for clean imports
+        # Set up schema only if needed
         if not dry_run:
-            print("\nSetting up database schema...")
             schema_setup = Neo4jSchemaSetup(uri, username, password, database)
             
             if not schema_setup.check_neo4j_connection():
@@ -652,15 +652,20 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
                     return
                 print("Database cleared")
             
-            if not schema_setup.setup_constraints():
-                print("Failed to set up constraints")
-                return
-            
-            if not schema_setup.setup_indexes():
-                print("Failed to set up indexes")
-                return
-            
-            print("Schema setup completed")
+            # Check if schema already exists
+            if schema_setup.schema_exists():
+                print("Database schema already exists, skipping setup")
+            else:
+                print("\nSetting up database schema...")
+                if not schema_setup.setup_constraints():
+                    print("Failed to set up constraints")
+                    return
+                
+                if not schema_setup.setup_indexes():
+                    print("Failed to set up indexes")
+                    return
+                
+                print("Schema setup completed")
         
         # Full cleanup if requested (completely clear database)
         if cleanup and not dry_run:
@@ -677,11 +682,9 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
             # Check if collection already exists
             if check_collection_exists(uri, username, password, database, collection):
                 print(f"\nCollection '{collection}' already exists in the database.")
-                print("Use --cleanup to clear existing data and reload.")
-                return
-            
-            # Load collection if it doesn't exist
-            if not check_collection_exists(uri, username, password, database, collection):
+                print("Proceeding with concept extraction for existing collection...")
+            else:
+                # Load collection if it doesn't exist
                 print(f"\nLoading collection: {collection}")
                 success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, 2000)
                 if not success:
@@ -703,8 +706,7 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
             
             if not collections_to_load:
                 print("All collections already exist in the database.")
-                print("Use --cleanup to clear existing data and reload.")
-                return
+                print("Proceeding with concept extraction for existing collections...")
             
             print(f"Loading {len(collections_to_load)} new collections (skipped {len(collection_files) - len(collections_to_load)} existing)")
             
@@ -721,8 +723,8 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
         
         # Extract concepts by default (unless disabled)
         if not no_concepts and not dry_run:
-            print(f"\nStarting multi-threaded concept extraction with {workers} workers...")
-            concept_system = ConceptExtractionSystem(
+            print(f"\nStarting sequential collection processing for concept extraction...")
+            sequential_processor = SequentialCollectionProcessor(
                 neo4j_uri=uri,
                 neo4j_user=username,
                 neo4j_password=password,
@@ -732,42 +734,26 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
             )
             
             try:
-                # Get actual total sentences to process for progress bar
-                with concept_system.driver.session() as session:
-                    result = session.run("""
-                        MATCH (s:Sentence) 
-                        WHERE NOT (s)-[:SENTENCE_HAS_CONCEPT]->(:Concept) 
-                        AND s.text IS NOT NULL 
-                        RETURN count(s) as total
-                    """)
-                    total_count = result.single()["total"]
-                
-                # Process sentences with simple progress logging
-                print(f"Processing {total_count} sentences for concept extraction...")
-                concept_stats = concept_system.process_sentences(
-                    batch_size=100,
-                    max_sentences=total_count,
-                    progress_callback=None  # Disable progress tracking to avoid threading issues
-                )
+                concept_stats = sequential_processor.process_collections_sequentially(textbook_path)
                 
                 print("\n=== CONCEPT EXTRACTION COMPLETE ===")
-                print(f"Sentences processed: {concept_stats['processed_sentences']}")
+                print(f"Collections processed: {concept_stats['collections_processed']}")
+                print(f"Sentences processed: {concept_stats['sentences_processed']}")
                 print(f"Concepts created: {concept_stats['concepts_created']}")
                 print(f"Entities extracted: {concept_stats['entities_extracted']}")
-                print(f"Wikidata lookups: {concept_stats['wikidata_lookups']}")
                 print(f"API calls made: {concept_stats.get('api_calls', 0)}")
                 print(f"Cache hits: {concept_stats.get('cache_hits', 0)}")
                 print(f"Cache hit rate: {concept_stats.get('cache_hit_rate', 0):.1f}%")
                 
-                if concept_stats['processed_sentences'] > 0:
-                    success_rate = concept_stats['concepts_created']/concept_stats['processed_sentences']*100
+                if concept_stats['sentences_processed'] > 0:
+                    success_rate = concept_stats['concepts_created']/concept_stats['sentences_processed']*100
                     print(f"Success rate: {success_rate:.1f}%")
                 
             except Exception as e:
                 print(f"Concept extraction failed: {e}")
                 logger.exception("Concept extraction error")
             finally:
-                concept_system.close()
+                sequential_processor.close()
 
         # Calculate and display execution time
         end_time = time.time()

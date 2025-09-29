@@ -53,6 +53,40 @@ class Neo4jSchemaSetup:
             self.database = database
         self.driver = None
     
+    def schema_exists(self) -> bool:
+        """Check if the database schema (constraints and indexes) already exists."""
+        try:
+            # Ensure connection is established
+            if self.driver is None:
+                self._connect()
+            
+            with self.driver.session(database=self.database) as session:
+                # Check if we have the expected number of constraints and indexes
+                constraints_result = session.run("SHOW CONSTRAINTS")
+                constraints = list(constraints_result)
+                
+                indexes_result = session.run("SHOW INDEXES")
+                indexes = list(indexes_result)
+                
+                # We expect at least 9 constraints (one for each node type)
+                # and at least 20 indexes for performance
+                expected_constraints = 9
+                expected_indexes = 20
+                
+                has_sufficient_constraints = len(constraints) >= expected_constraints
+                has_sufficient_indexes = len(indexes) >= expected_indexes
+                
+                if has_sufficient_constraints and has_sufficient_indexes:
+                    print(f"Schema check: Found {len(constraints)} constraints and {len(indexes)} indexes")
+                    return True
+                else:
+                    print(f"Schema check: Found {len(constraints)} constraints and {len(indexes)} indexes (expected at least {expected_constraints} constraints and {expected_indexes} indexes)")
+                    return False
+                    
+        except Exception as e:
+            print(f"Error checking schema existence: {e}")
+            return False
+    
     def check_neo4j_connection(self) -> bool:
         """Check if Neo4j is installed and accessible."""
         try:
