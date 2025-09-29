@@ -88,7 +88,6 @@ bee-graph/
 ├── backup/              # Backup files
 ├── env/                 # Virtual environment
 ├── scripts/             # Setup and utility scripts
-│   ├── extract_concepts.py
 │   ├── load_textbooks.py
 │   ├── setup_database.py
 │   └── setup_neo4j_schema.py

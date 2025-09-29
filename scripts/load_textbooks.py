@@ -2,9 +2,8 @@
 """
 OpenStax Textbook Loader Script for Neo4j
 
-This script loads OpenStax textbook content into Neo4j database using the XML parser
-with dual labeling schema support. It processes both collection hierarchy and 
-document-level content structure.
+This script loads OpenStax textbook content into Neo4j database with automatic concept extraction.
+It processes both collection hierarchy and document-level content structure.
 
 HIERARCHY PROCESSING:
 Collection Level: Book → Chapter → Subchapter → Document
@@ -16,23 +15,35 @@ FEATURES:
 - Namespaced IDs to prevent cross-textbook conflicts
 - Dual labeling schema (CONTAINS + BELONGS_TO relationships)
 - Content extraction and sentence segmentation
-- Concept extraction (planned future feature)
+- Automatic concept extraction using Wikidata
 
 Usage:
-    # Load all collections with multi-threaded concept extraction
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --batch-size 2000 --extract-concepts --concept-workers 4 --concept-batch-size 50
+    # Load all collections with automatic concept extraction (default)
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle
     
     # Load specific collection
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e.collection
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e
     
-    # List available collections
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --list-collections
+    # Clear existing data and reload everything
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --cleanup
     
-    # Bulk import with cleanup and multi-threaded concept extraction
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup --extract-concepts --concept-workers 6
+    # Skip concept extraction for faster loading
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --no-concepts
     
-    # Dry run to test without changes
-    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
+    # Use more workers for faster concept extraction
+    python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --workers 8
+    
+    # Delete a specific collection
+    python scripts/load_textbooks.py --delete-collection biology-2e
+    
+    # Delete all collections from a textbook
+    python scripts/load_textbooks.py --delete-textbook biology
+    
+    # List all textbooks and collections in database
+    python scripts/load_textbooks.py --list-textbooks
+    
+    # Clean up orphaned nodes (nodes without relationships)
+    python scripts/load_textbooks.py --cleanup-orphans
 """
 
 import os
@@ -92,6 +103,305 @@ def check_collection_exists(uri: str, username: str, password: str, database: st
             driver.close()
 
 
+def list_available_textbooks_and_collections(uri: str, username: str, password: str, database: str) -> None:
+    """List all available textbooks and collections in the database."""
+    try:
+        from neo4j import GraphDatabase
+        driver = GraphDatabase.driver(uri, auth=(username, password))
+        
+        with driver.session(database=database) as session:
+            # Get all books grouped by textbook
+            result = session.run("""
+                MATCH (b:Book)
+                WITH split(b.book_id, '-')[0] as textbook, collect(b.book_id) as collections
+                RETURN textbook, collections
+                ORDER BY textbook
+            """)
+            
+            textbooks = {}
+            for record in result:
+                textbook = record["textbook"]
+                collections = record["collections"]
+                textbooks[textbook] = collections
+            
+            if not textbooks:
+                print("No textbooks found in the database")
+                return
+            
+            print("Available textbooks and collections:")
+            print("=" * 50)
+            
+            for textbook, collections in textbooks.items():
+                print(f"\nTextbook: {textbook}")
+                print(f"  Collections ({len(collections)}):")
+                for collection in sorted(collections):
+                    print(f"    - {collection}")
+            
+            print(f"\nTotal textbooks: {len(textbooks)}")
+            total_collections = sum(len(collections) for collections in textbooks.values())
+            print(f"Total collections: {total_collections}")
+            
+            print(f"\nDelete examples:")
+            print(f"  Delete entire textbook: --delete-textbook {list(textbooks.keys())[0]}")
+            print(f"  Delete specific collection: --delete-collection {list(textbooks.values())[0][0]}")
+            
+    except Exception as e:
+        print(f"Error listing textbooks and collections: {e}")
+    finally:
+        if 'driver' in locals():
+            driver.close()
+
+
+def delete_textbook_collections(uri: str, username: str, password: str, database: str, textbook_name: str) -> bool:
+    """Delete all collections from a specific textbook using comprehensive batched operations."""
+    try:
+        from neo4j import GraphDatabase
+        driver = GraphDatabase.driver(uri, auth=(username, password))
+        
+        with driver.session(database=database) as session:
+            # Get all collections for this textbook
+            result = session.run("""
+                MATCH (b:Book) 
+                WHERE b.book_id STARTS WITH $textbook_name
+                RETURN collect(b.book_id) as book_ids
+            """, textbook_name=textbook_name)
+            
+            collections = result.single()["book_ids"]
+            
+            if not collections:
+                print(f"No collections found for textbook: {textbook_name}")
+                return True
+            
+            print(f"Found {len(collections)} collections to delete from textbook: {textbook_name}")
+            print(f"Collections: {', '.join(collections)}")
+            
+            # Use comprehensive deletion approach
+            # Delete relationships first (more aggressive approach)
+            print("Deleting all relationships from/to textbook nodes...")
+            deleted_rels = 0
+            batch_size = 500
+            
+            while True:
+                result = session.run("""
+                    MATCH (book:Book)
+                    WHERE book.book_id IN $book_ids
+                    OPTIONAL MATCH (book)-[:CONTAINS*0..]->(n)
+                    OPTIONAL MATCH (n)-[:BELONGS_TO*0..]->(book)
+                    WITH collect(DISTINCT book) + collect(DISTINCT n) as all_nodes
+                    UNWIND all_nodes as node
+                    WHERE node IS NOT NULL
+                    WITH node
+                    MATCH (node)-[r]-(other)
+                    WITH r LIMIT $batch_size
+                    DELETE r
+                    RETURN count(r) as deleted
+                """, book_ids=collections, batch_size=batch_size)
+                
+                deleted = result.single()["deleted"]
+                deleted_rels += deleted
+                print(f"  Deleted {deleted} relationships (total: {deleted_rels})")
+                
+                if deleted == 0:
+                    break
+            
+            # Delete nodes in batches (more aggressive approach)
+            print("Deleting textbook nodes...")
+            deleted_nodes = 0
+            while True:
+                result = session.run("""
+                    MATCH (book:Book)
+                    WHERE book.book_id IN $book_ids
+                    OPTIONAL MATCH (book)-[:CONTAINS*0..]->(n)
+                    OPTIONAL MATCH (n)-[:BELONGS_TO*0..]->(book)
+                    WITH collect(DISTINCT book) + collect(DISTINCT n) as all_nodes
+                    UNWIND all_nodes as node
+                    WHERE node IS NOT NULL
+                    WITH node LIMIT $batch_size
+                    DETACH DELETE node
+                    RETURN count(node) as deleted
+                """, book_ids=collections, batch_size=batch_size)
+                
+                deleted = result.single()["deleted"]
+                deleted_nodes += deleted
+                print(f"  Deleted {deleted} nodes (total: {deleted_nodes})")
+                
+                if deleted == 0:
+                    break
+            
+            print(f"Successfully deleted textbook: {textbook_name}")
+            print(f"Total nodes deleted: {deleted_nodes}")
+            print(f"Total relationships deleted: {deleted_rels}")
+            return True
+            
+    except Exception as e:
+        print(f"Error deleting textbook: {e}")
+        return False
+    finally:
+        if 'driver' in locals():
+            driver.close()
+
+
+def delete_single_collection(uri: str, username: str, password: str, database: str, collection_name: str) -> bool:
+    """Delete a specific collection using comprehensive batched operations."""
+    try:
+        from neo4j import GraphDatabase
+        driver = GraphDatabase.driver(uri, auth=(username, password))
+        
+        with driver.session(database=database) as session:
+            # Check if collection exists
+            result = session.run("""
+                MATCH (b:Book) 
+                WHERE b.book_id = $collection_name
+                RETURN count(b) as count
+            """, collection_name=collection_name)
+            
+            count = result.single()["count"]
+            if count == 0:
+                print(f"Collection '{collection_name}' not found")
+                return True
+            
+            print(f"Deleting collection: {collection_name}")
+            
+            # Use a more comprehensive approach - find all nodes connected to this book
+            # First, let's find all nodes that belong to this collection through any path
+            all_nodes_result = session.run("""
+                MATCH (book:Book {book_id: $book_id})
+                OPTIONAL MATCH (book)-[:CONTAINS*0..]->(n)
+                OPTIONAL MATCH (n)-[:BELONGS_TO*0..]->(book)
+                WITH collect(DISTINCT book) + collect(DISTINCT n) as all_nodes
+                UNWIND all_nodes as node
+                WHERE node IS NOT NULL
+                RETURN collect(DISTINCT id(node)) as node_ids
+            """, book_id=collection_name)
+            
+            node_ids = all_nodes_result.single()["node_ids"]
+            total_nodes = len(node_ids)
+            
+            print(f"Found {total_nodes} nodes to delete")
+            
+            if total_nodes == 0:
+                print("No data found to delete")
+                return True
+            
+            # Delete in batches to avoid Neo4j timeout
+            batch_size = 500
+            
+            # Delete relationships first (more aggressive approach)
+            print("Deleting all relationships from/to collection nodes...")
+            deleted_rels = 0
+            while True:
+                result = session.run("""
+                    MATCH (book:Book {book_id: $book_id})
+                    OPTIONAL MATCH (book)-[:CONTAINS*0..]->(n)
+                    OPTIONAL MATCH (n)-[:BELONGS_TO*0..]->(book)
+                    WITH collect(DISTINCT book) + collect(DISTINCT n) as all_nodes
+                    UNWIND all_nodes as node
+                    WHERE node IS NOT NULL
+                    WITH node
+                    MATCH (node)-[r]-(other)
+                    WITH r LIMIT $batch_size
+                    DELETE r
+                    RETURN count(r) as deleted
+                """, book_id=collection_name, batch_size=batch_size)
+                
+                deleted = result.single()["deleted"]
+                deleted_rels += deleted
+                print(f"  Deleted {deleted} relationships (total: {deleted_rels})")
+                
+                if deleted == 0:
+                    break
+            
+            # Delete nodes in batches (more aggressive approach)
+            print("Deleting collection nodes...")
+            deleted_nodes = 0
+            while True:
+                result = session.run("""
+                    MATCH (book:Book {book_id: $book_id})
+                    OPTIONAL MATCH (book)-[:CONTAINS*0..]->(n)
+                    OPTIONAL MATCH (n)-[:BELONGS_TO*0..]->(book)
+                    WITH collect(DISTINCT book) + collect(DISTINCT n) as all_nodes
+                    UNWIND all_nodes as node
+                    WHERE node IS NOT NULL
+                    WITH node LIMIT $batch_size
+                    DETACH DELETE node
+                    RETURN count(node) as deleted
+                """, book_id=collection_name, batch_size=batch_size)
+                
+                deleted = result.single()["deleted"]
+                deleted_nodes += deleted
+                print(f"  Deleted {deleted} nodes (total: {deleted_nodes})")
+                
+                if deleted == 0:
+                    break
+            
+            print(f"Successfully deleted collection: {collection_name}")
+            print(f"Total nodes deleted: {deleted_nodes}")
+            print(f"Total relationships deleted: {deleted_rels}")
+            return True
+            
+    except Exception as e:
+        print(f"Error deleting collection: {e}")
+        return False
+    finally:
+        if 'driver' in locals():
+            driver.close()
+
+
+def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str) -> bool:
+    """Clean up orphaned nodes (nodes without any relationships)."""
+    try:
+        from neo4j import GraphDatabase
+        driver = GraphDatabase.driver(uri, auth=(username, password))
+        
+        with driver.session(database=database) as session:
+            print("CLEANING UP ORPHANED NODES")
+            print("=" * 50)
+            
+            # First, count orphaned nodes
+            result = session.run("""
+                MATCH (n)
+                WHERE NOT (n)--()
+                RETURN count(n) as orphan_count
+            """)
+            orphan_count = result.single()["orphan_count"]
+            
+            if orphan_count == 0:
+                print("No orphaned nodes found")
+                return True
+            
+            print(f"Found {orphan_count} orphaned nodes to clean up")
+            
+            # Delete orphaned nodes in batches
+            batch_size = 1000
+            deleted_count = 0
+            
+            while True:
+                result = session.run("""
+                    MATCH (n)
+                    WHERE NOT (n)--()
+                    WITH n LIMIT $batch_size
+                    DELETE n
+                    RETURN count(n) as deleted
+                """, batch_size=batch_size)
+                
+                deleted = result.single()["deleted"]
+                deleted_count += deleted
+                print(f"  Deleted {deleted} orphaned nodes (total: {deleted_count})")
+                
+                if deleted == 0:
+                    break
+            
+            print(f"Successfully cleaned up {deleted_count} orphaned nodes")
+            return True
+            
+    except Exception as e:
+        print(f"Error cleaning up orphaned nodes: {e}")
+        return False
+    finally:
+        if 'driver' in locals():
+            driver.close()
+
+
 def clear_entire_database(uri: str, username: str, password: str, database: str) -> bool:
     """Completely clear the entire database - removes all nodes and relationships."""
     try:
@@ -131,58 +441,112 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 
 
 @click.command()
-@click.option('--textbook-path', required=True, help='Path to OpenStax textbook directory')
-@click.option('--collection', help='Specific collection to import (e.g., biology-2e, biology-ap-courses)')
-@click.option('--uri', default=None, help='Neo4j URI (if not provided, loads from config)')
-@click.option('--username', default=None, help='Neo4j username (if not provided, loads from config)')
-@click.option('--password', default=None, help='Neo4j password (if not provided, loads from config)')
-@click.option('--database', default=None, help='Database name (if not provided, loads from config)')
-@click.option('--setup-schema', is_flag=True, help='Set up database schema before import')
-@click.option('--dry-run', default=False, is_flag=True, help='Parse files without importing to database')
+@click.option('--textbook-path', help='Path to OpenStax textbook directory')
+@click.option('--collection', help='Specific collection to import (optional, defaults to all collections)')
+@click.option('--cleanup', is_flag=True, help='Clear existing data before import')
+@click.option('--dry-run', is_flag=True, help='Parse files without importing to database')
 @click.option('--list-collections', is_flag=True, help='List available collections and exit')
-@click.option('--verify', is_flag=True, help='Verify import after completion')
-@click.option('--bulk-import', default=True, help='Use bulk import for better performance with large datasets')
-@click.option('--batch-size', default=2000, help='Batch size for bulk operations (default: 2000)')
-@click.option('--cleanup', is_flag=True, help='Clean up existing data (sample data and textbooks) before import')
-@click.option('--full-cleanup', is_flag=True, help='Completely clear the entire database before import (removes all nodes and relationships)')
-@click.option('--force', is_flag=True, help='Force loading even if collections already exist')
-@click.option('--extract-concepts', default=True, help='Extract concepts after loading textbook content')
-@click.option('--no-extract-concepts', is_flag=True, help='Skip concept extraction')
-@click.option('--concept-workers', type=int, default=4, help='Number of workers for concept extraction (default: 4)')
-@click.option('--concept-batch-size', type=int, default=100, help='Batch size for concept extraction (default: 50)')
-def main(textbook_path: str, collection: str, uri: str, username: str, password: str, database: str,
-         setup_schema: bool, dry_run: bool, list_collections: bool, verify: bool, bulk_import: bool, batch_size: int, cleanup: bool, full_cleanup: bool, force: bool, extract_concepts: bool, no_extract_concepts: bool, concept_workers: int, concept_batch_size: int):
-    """Load OpenStax textbook content into Neo4j database using XML parser.
+@click.option('--list-textbooks', is_flag=True, help='List available textbooks and collections in database')
+@click.option('--no-concepts', is_flag=True, help='Skip concept extraction (concepts are extracted by default)')
+@click.option('--workers', type=int, default=4, help='Number of workers for concept extraction (default: 4)')
+@click.option('--delete-textbook', help='Delete all collections from a specific textbook (provide textbook name)')
+@click.option('--delete-collection', help='Delete a specific collection (provide collection name)')
+@click.option('--cleanup-orphans', is_flag=True, help='Clean up orphaned nodes (nodes without relationships)')
+def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list_collections: bool, list_textbooks: bool, no_concepts: bool, workers: int, delete_textbook: str, delete_collection: str, cleanup_orphans: bool):
+    """Load OpenStax textbook content into Neo4j database with automatic concept extraction.
     
-    This script parses OpenStax textbook XML files and loads the content into a Neo4j database.
-    It supports both individual collection loading and bulk loading of all collections.
-    By default, it will skip collections that already exist in the database.
+    This script loads textbook content and automatically extracts concepts using Wikidata.
+    By default, it imports all collections and extracts concepts with 4 workers.
     
     Examples:
-        # Load all collections with multi-threaded concept extraction
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --extract-concepts --concept-workers 4
+        # Load all collections with concept extraction (default behavior)
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle
         
         # Load specific collection
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e.collection
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --collection biology-2e
         
-        # Bulk import with cleanup and high-performance concept extraction
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --bulk-import --cleanup --extract-concepts --concept-workers 6 --concept-batch-size 100
+        # Clear existing data and reload everything
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --cleanup
         
-        # Force reload existing collections with multi-threading
-        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --force --extract-concepts
+        # Skip concept extraction (faster loading)
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --no-concepts
         
-        # Dry run to test without changes
+        # Use more workers for faster concept extraction
+        python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --workers 8
+        
+        # Delete a specific collection
+        python scripts/load_textbooks.py --delete-collection biology-2e
+        
+        # Delete all collections from a textbook
+        python scripts/load_textbooks.py --delete-textbook biology
+        
+        # List all textbooks and collections in database
+        python scripts/load_textbooks.py --list-textbooks
+        
+        # Clean up orphaned nodes (nodes without relationships)
+        python scripts/load_textbooks.py --cleanup-orphans
+        
+        # Test without making changes
         python scripts/load_textbooks.py --textbook-path textbooks/osbooks-biology-bundle --dry-run
     """
     
-    # Load from config if parameters not provided
-    if uri is None or username is None or password is None or database is None:
-        from config.config_loader import get_neo4j_connection_params
-        config_uri, config_username, config_password, config_database = get_neo4j_connection_params()
-        uri = uri if uri is not None else config_uri
-        username = username if username is not None else config_username
-        password = password if password is not None else config_password
-        database = database if database is not None else config_database
+    # Load Neo4j connection parameters from config
+    from config.config_loader import get_neo4j_connection_params
+    uri, username, password, database = get_neo4j_connection_params()
+    
+    # Handle list operations first
+    if list_textbooks:
+        print("LISTING TEXTBOOKS AND COLLECTIONS")
+        print("=" * 50)
+        list_available_textbooks_and_collections(uri, username, password, database)
+        return
+    
+    # Handle orphan cleanup
+    if cleanup_orphans:
+        success = cleanup_orphaned_nodes(uri, username, password, database)
+        if success:
+            print(f"\nOrphan cleanup completed successfully")
+            print(f"Neo4j Browser: http://20.29.35.132:7474")
+        else:
+            print(f"\nOrphan cleanup failed")
+        return
+    
+    # Handle delete operations
+    if delete_textbook:
+        print("TEXTBOOK DELETION")
+        print("=" * 50)
+        print(f"Deleting textbook: {delete_textbook}")
+        print(f"Database: {database}")
+        print("=" * 50)
+        
+        success = delete_textbook_collections(uri, username, password, database, delete_textbook)
+        if success:
+            print(f"\nSuccessfully deleted textbook: {delete_textbook}")
+            print(f"Neo4j Browser: http://20.29.35.132:7474")
+        else:
+            print(f"\nFailed to delete textbook: {delete_textbook}")
+        return
+    
+    if delete_collection:
+        print("COLLECTION DELETION")
+        print("=" * 50)
+        print(f"Deleting collection: {delete_collection}")
+        print(f"Database: {database}")
+        print("=" * 50)
+        
+        success = delete_single_collection(uri, username, password, database, delete_collection)
+        if success:
+            print(f"\nSuccessfully deleted collection: {delete_collection}")
+            print(f"Neo4j Browser: http://20.29.35.132:7474")
+        else:
+            print(f"\nFailed to delete collection: {delete_collection}")
+        return
+    
+    # Validate that textbook-path is provided for non-delete operations
+    if not textbook_path and not list_collections:
+        print("ERROR: --textbook-path is required for loading operations")
+        print("Use --help to see available options")
+        return
     
     # Record start time
     start_time = time.time()
@@ -246,10 +610,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
     print(f"Textbook: {textbook_dir.name}")
     print(f"Database: {database}")
     
-    if bulk_import:
-        print(f"Mode: Bulk Import (batch size: {batch_size})")
-    else:
-        print("Mode: Standard Import")
+    print("Mode: Bulk Import (optimized for large datasets)")
     
     if dry_run:
         print("DRY RUN MODE - No database changes will be made")
@@ -282,15 +643,15 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
     # Initialize XML parser
     parser = OpenStaxXMLParser(uri, username, password, database)
     
-    # Initialize bulk importer if requested
+    # Initialize bulk importer for better performance
     bulk_importer = None
-    if bulk_import and not dry_run:
+    if not dry_run:
         bulk_importer = create_bulk_importer(uri, username, password, database)
-        print(f"Initialized bulk importer with batch size: {batch_size}")
+        print("Initialized bulk importer (batch size: 2000)")
     
     try:
-        # Set up schema if requested
-        if setup_schema and not dry_run:
+        # Always set up schema for clean imports
+        if not dry_run:
             print("\nSetting up database schema...")
             schema_setup = Neo4jSchemaSetup(uri, username, password, database)
             
@@ -316,14 +677,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
             print("Schema setup completed")
         
         # Full cleanup if requested (completely clear database)
-        if full_cleanup and not dry_run:
-            print("\nPerforming full database cleanup...")
-            if not clear_entire_database(uri, username, password, database):
-                print("Failed to clear entire database")
-                return
-        
-        # Clean up sample data if requested (even without setup_schema)
-        elif cleanup and not dry_run:
+        if cleanup and not dry_run:
             print("\nCleaning up existing data...")
             if not parser.clear_sample_data(uri, username, password, database):
                 print("Failed to clear existing data")
@@ -334,51 +688,39 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
             # Load specific collection
             collection_file = collections_dir / f"{collection}.xml"
             
-            # Check if collection already exists (unless force is used)
-            if not force:
-                if check_collection_exists(uri, username, password, database, collection):
-                    print(f"\nCollection '{collection}' already exists in the database.")
-                    if not extract_concepts:
-                        print(f"Use --force to reload it anyway, or --full-cleanup to clear the database first.")
-                        return
-                    else:
-                        print("Proceeding with concept extraction only...")
+            # Check if collection already exists
+            if check_collection_exists(uri, username, password, database, collection):
+                print(f"\nCollection '{collection}' already exists in the database.")
+                print("Use --cleanup to clear existing data and reload.")
+                return
             
-            # Only load collection if it doesn't exist or if force is used
-            if not check_collection_exists(uri, username, password, database, collection) or force:
+            # Load collection if it doesn't exist
+            if not check_collection_exists(uri, username, password, database, collection):
                 print(f"\nLoading collection: {collection}")
-                success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
+                success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, 2000)
                 if not success:
                     print(f"Failed to load collection: {collection}")
                     return
-            else:
-                print(f"\nSkipping existing collection: {collection}")
         else:
             # Load all collections
             collection_files = list(collections_dir.glob("*.xml"))
             print(f"\nFound {len(collection_files)} collections to load")
             
-            # Filter out existing collections unless force is used
+            # Filter out existing collections
             collections_to_load = []
-            if not force:
-                for collection_file in collection_files:
-                    collection_name = collection_file.stem
-                    if check_collection_exists(uri, username, password, database, collection_name):
-                        print(f"Skipping existing collection: {collection_name}")
-                    else:
-                        collections_to_load.append(collection_file)
-                
-                if not collections_to_load:
-                    print("All collections already exist in the database.")
-                    if not extract_concepts:
-                        print("Use --force to reload them anyway, or --full-cleanup to clear the database first.")
-                        return
-                    else:
-                        print("Proceeding with concept extraction only...")
-                
-                print(f"Loading {len(collections_to_load)} new collections (skipped {len(collection_files) - len(collections_to_load)} existing)")
-            else:
-                collections_to_load = collection_files
+            for collection_file in collection_files:
+                collection_name = collection_file.stem
+                if check_collection_exists(uri, username, password, database, collection_name):
+                    print(f"Skipping existing collection: {collection_name}")
+                else:
+                    collections_to_load.append(collection_file)
+            
+            if not collections_to_load:
+                print("All collections already exist in the database.")
+                print("Use --cleanup to clear existing data and reload.")
+                return
+            
+            print(f"Loading {len(collections_to_load)} new collections (skipped {len(collection_files) - len(collections_to_load)} existing)")
             
             # Load collections with simple progress logging
             if collections_to_load:
@@ -386,36 +728,21 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 for i, collection_file in enumerate(collections_to_load, 1):
                     collection_name = collection_file.stem
                     print(f"Loading collection {i}/{len(collections_to_load)}: {collection_name}")
-                    success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, batch_size)
+                    success = parser.load_collection(collection_file, textbook_dir, dry_run, bulk_importer, 2000)
                     if not success:
                         print(f"\nFailed to load collection: {collection_name}")
                 print("Collection loading completed!")
         
-        # Verify import if requested
-        if verify and not dry_run:
-            print("\nVerifying import...")
-            verification = parser.verify_import(database)
-            if verification:
-                print("Import verification completed")
-                print(f"   Total nodes: {verification['total_nodes']}")
-                print(f"   Total relationships: {verification['total_relationships']}")
-            else:
-                print("Import verification failed")
-        
-        # Handle concept extraction flag logic
-        if no_extract_concepts:
-            extract_concepts = False
-        
-        # Extract concepts if requested
-        if extract_concepts and not dry_run:
-            print(f"\nStarting multi-threaded concept extraction with {concept_workers} workers...")
+        # Extract concepts by default (unless disabled)
+        if not no_concepts and not dry_run:
+            print(f"\nStarting multi-threaded concept extraction with {workers} workers...")
             concept_system = ConceptExtractionSystem(
                 neo4j_uri=uri,
                 neo4j_user=username,
                 neo4j_password=password,
                 neo4j_database=database,
                 cache_file="wikidata_cache.json",
-                max_workers=concept_workers
+                max_workers=workers
             )
             
             try:
@@ -432,7 +759,7 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
                 # Process sentences with simple progress logging
                 print(f"Processing {total_count} sentences for concept extraction...")
                 concept_stats = concept_system.process_sentences(
-                    batch_size=concept_batch_size,
+                    batch_size=100,
                     max_sentences=total_count,
                     progress_callback=None  # Disable progress tracking to avoid threading issues
                 )
@@ -477,10 +804,8 @@ def main(textbook_path: str, collection: str, uri: str, username: str, password:
         
         if not dry_run:
             print(f"\nNavigate to 20.29.35.132:7474 to see your imported data")
-            print(f"   ")
             print(f"\nTo clear existing data before future imports:")
             print(f"   python scripts/load_textbooks.py --textbook-path <path> --cleanup")
-            print(f"   python scripts/load_textbooks.py --textbook-path <path> --full-cleanup")
         
     except KeyboardInterrupt:
         print("\nLoading cancelled by user")
