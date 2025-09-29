@@ -348,58 +348,44 @@ def delete_single_collection(uri: str, username: str, password: str, database: s
 
 
 def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str) -> bool:
-    """Clean up orphaned nodes (nodes without any relationships)."""
+    """Fix orphaned nodes by creating missing relationships and nodes (preserves all content)."""
     try:
-        from neo4j import GraphDatabase
-        driver = GraphDatabase.driver(uri, auth=(username, password))
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.parent))
+        from src.textbook_parse.xml_parser import OpenStaxXMLParser
         
-        with driver.session(database=database) as session:
-            print("CLEANING UP ORPHANED NODES")
-            print("=" * 50)
-            
-            # First, count orphaned nodes
-            result = session.run("""
-                MATCH (n)
-                WHERE NOT (n)--()
-                RETURN count(n) as orphan_count
-            """)
-            orphan_count = result.single()["orphan_count"]
-            
-            if orphan_count == 0:
-                print("No orphaned nodes found")
-                return True
-            
-            print(f"Found {orphan_count} orphaned nodes to clean up")
-            
-            # Delete orphaned nodes in batches
-            batch_size = 1000
-            deleted_count = 0
-            
-            while True:
-                result = session.run("""
-                    MATCH (n)
-                    WHERE NOT (n)--()
-                    WITH n LIMIT $batch_size
-                    DELETE n
-                    RETURN count(n) as deleted
-                """, batch_size=batch_size)
-                
-                deleted = result.single()["deleted"]
-                deleted_count += deleted
-                print(f"  Deleted {deleted} orphaned nodes (total: {deleted_count})")
-                
-                if deleted == 0:
-                    break
-            
-            print(f"Successfully cleaned up {deleted_count} orphaned nodes")
-            return True
+        print("FIXING ORPHANED NODES")
+        print("=" * 50)
+        print("This will fix orphaned nodes by creating missing relationships and nodes.")
+        print("All textbook content will be preserved.")
+        print()
+        
+        # Initialize parser to use its orphaned node fixing functionality
+        parser = OpenStaxXMLParser(uri, username, password, database)
+        
+        # Run the orphaned node fixing process
+        fixes = parser.fix_orphaned_nodes(database)
+        
+        # Display results
+        print("\nORPHANED NODE FIXING RESULTS")
+        print("=" * 50)
+        print(f"Orphaned sentences fixed: {fixes['orphaned_sentences_fixed']}")
+        print(f"Orphaned documents fixed: {fixes['orphaned_documents_fixed']}")
+        print(f"Orphaned subsections fixed: {fixes['orphaned_subsections_fixed']}")
+        print(f"Missing paragraphs created: {fixes['missing_paragraphs_created']}")
+        print(f"Remaining orphaned sentences: {fixes['remaining_orphaned_sentences']}")
+        print(f"Remaining orphaned documents: {fixes['remaining_orphaned_documents']}")
+        print(f"Remaining orphaned subsections: {fixes['remaining_orphaned_subsections']}")
+        
+        # Close connections
+        parser.close_connections()
+        
+        return True
             
     except Exception as e:
-        print(f"Error cleaning up orphaned nodes: {e}")
+        print(f"Error fixing orphaned nodes: {e}")
         return False
-    finally:
-        if 'driver' in locals():
-            driver.close()
 
 
 def clear_entire_database(uri: str, username: str, password: str, database: str) -> bool:

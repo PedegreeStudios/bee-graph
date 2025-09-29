@@ -146,10 +146,12 @@ class BulkImporter:
         # Map relationship types to their source and target node types and ID properties
         rel_mapping = {
             'BOOK_CONTAINS_CHAPTER': ('Book', 'book_id', 'Chapter', 'chapter_id'),
+            'BOOK_CONTAINS_DOCUMENT': ('Book', 'book_id', 'Document', 'document_id'),
             'CHAPTER_CONTAINS_SUBCHAPTER': ('Chapter', 'chapter_id', 'Subchapter', 'subchapter_id'),
             'CHAPTER_CONTAINS_DOCUMENT': ('Chapter', 'chapter_id', 'Document', 'document_id'),
             'SUBCHAPTER_CONTAINS_DOCUMENT': ('Subchapter', 'subchapter_id', 'Document', 'document_id'),
             'DOCUMENT_CONTAINS_SECTION': ('Document', 'document_id', 'Section', 'section_id'),
+            'DOCUMENT_CONTAINS_SUBSECTION': ('Document', 'document_id', 'Subsection', 'subsection_id'),
             'DOCUMENT_CONTAINS_PARAGRAPH': ('Document', 'document_id', 'Paragraph', 'paragraph_id'),
             'SECTION_CONTAINS_SUBSECTION': ('Section', 'section_id', 'Subsection', 'subsection_id'),
             'SECTION_CONTAINS_PARAGRAPH': ('Section', 'section_id', 'Paragraph', 'paragraph_id'),
@@ -203,10 +205,12 @@ class BulkImporter:
         # For BELONGS_TO relationships, the source and target are swapped from CONTAINS
         bidirectional_map = {
             'BOOK_CONTAINS_CHAPTER': ('CHAPTER_BELONGS_TO_BOOK', 'Chapter', 'chapter_id', 'Book', 'book_id'),
+            'BOOK_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_BOOK', 'Document', 'document_id', 'Book', 'book_id'),
             'CHAPTER_CONTAINS_SUBCHAPTER': ('SUBCHAPTER_BELONGS_TO_CHAPTER', 'Subchapter', 'subchapter_id', 'Chapter', 'chapter_id'),
             'CHAPTER_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_CHAPTER', 'Document', 'document_id', 'Chapter', 'chapter_id'),
             'SUBCHAPTER_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_SUBCHAPTER', 'Document', 'document_id', 'Subchapter', 'subchapter_id'),
             'DOCUMENT_CONTAINS_SECTION': ('SECTION_BELONGS_TO_DOCUMENT', 'Section', 'section_id', 'Document', 'document_id'),
+            'DOCUMENT_CONTAINS_SUBSECTION': ('SUBSECTION_BELONGS_TO_DOCUMENT', 'Subsection', 'subsection_id', 'Document', 'document_id'),
             'DOCUMENT_CONTAINS_PARAGRAPH': ('PARAGRAPH_BELONGS_TO_DOCUMENT', 'Paragraph', 'paragraph_id', 'Document', 'document_id'),
             'SECTION_CONTAINS_SUBSECTION': ('SUBSECTION_BELONGS_TO_SECTION', 'Subsection', 'subsection_id', 'Section', 'section_id'),
             'SECTION_CONTAINS_PARAGRAPH': ('PARAGRAPH_BELONGS_TO_SECTION', 'Paragraph', 'paragraph_id', 'Section', 'section_id'),

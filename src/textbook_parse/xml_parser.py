@@ -657,6 +657,7 @@ class OpenStaxXMLParser:
         
         # Get book_id for namespacing all child IDs
         book_id = metadata.get('slug', collection_name)
+        collection_book_id = book_id  # Store the original book_id for use in module parsing
         
         book_data = {
             'book_id': book_id,
@@ -739,11 +740,11 @@ class OpenStaxXMLParser:
                     # Create namespaced document ID to prevent cross-textbook conflicts
                     namespaced_document_id = create_namespaced_id(original_document_id)
                     
-                    # Handle root-level modules (level 0) - skip them for now
-                    # We'll process them later by checking actual module files
+                    # Handle root-level modules (level 0) - connect them directly to the book
                     if level == 0 and not parent_id:
-                        logger.warning(f"Root-level module {original_document_id} found - will be processed separately")
-                        continue
+                        logger.info(f"Root-level module {original_document_id} found - connecting to book")
+                        parent_id = book_id
+                        parent_type = 'book'
                     
                     # Validate parent_id is not empty
                     if not parent_id:
@@ -771,7 +772,10 @@ class OpenStaxXMLParser:
                     nodes.append(('Document', document_data))
                     
                     # Create the appropriate parent-child relationship immediately using namespaced IDs
-                    if parent_type == 'chapter':
+                    if parent_type == 'book':
+                        relationships.append(('BOOK_CONTAINS_DOCUMENT', parent_id, namespaced_document_id))
+                        logger.debug(f"Created BOOK_CONTAINS_DOCUMENT relationship: {parent_id} -> {namespaced_document_id}")
+                    elif parent_type == 'chapter':
                         relationships.append(('CHAPTER_CONTAINS_DOCUMENT', parent_id, namespaced_document_id))
                         logger.debug(f"Created CHAPTER_CONTAINS_DOCUMENT relationship: {parent_id} -> {namespaced_document_id}")
                     elif parent_type == 'subchapter':
@@ -835,7 +839,9 @@ class OpenStaxXMLParser:
                 if ns_doc_id.endswith(f"_{original_document_id}"):
                     namespaced_document_id = ns_doc_id
                     # Extract book_id from namespaced ID
-                    book_id = ns_doc_id.split(f"_{original_document_id}")[0]
+                    clean_book_id = ns_doc_id.split(f"_{original_document_id}")[0]
+                    # Convert clean_book_id back to book_id format (with hyphens)
+                    book_id = clean_book_id.replace('_', '-')
                     break
             
             if not namespaced_document_id:
@@ -843,16 +849,32 @@ class OpenStaxXMLParser:
                 # logger.info(f"Module {original_document_id} not in collection structure - creating standalone document")
                 # Extract book_id from the first available document in the map
                 if self._debug_document_map:
-                    first_doc_id = list(self._debug_document_map.keys())[0]
-                    book_id = first_doc_id.split('_')[0] + '_' + first_doc_id.split('_')[1]  # Extract book prefix
+                    # Use the collection book_id that was stored during collection parsing
+                    if hasattr(self, '_collection_book_id'):
+                        book_id = self._collection_book_id
+                    else:
+                        # Fallback: extract from first document ID
+                        first_doc_id = list(self._debug_document_map.keys())[0]
+                        # Convert underscores back to hyphens for book_id
+                        parts = first_doc_id.split('_')
+                        if len(parts) >= 3:
+                            book_name = parts[0]  # american
+                            version = parts[1]    # government
+                            edition = parts[2]    # 4e
+                            book_id = f"{book_name}-{version}-{edition}"
+                        else:
+                            book_id = "unknown_book"
                 else:
                     book_id = "unknown_book"
                 
-                namespaced_document_id = f"{book_id}_{original_document_id}"
+                # Convert book_id to clean format for namespaced ID
+                clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
+                namespaced_document_id = f"{clean_book_id}_{original_document_id}"
         else:
             logger.warning(f"No document map available - creating standalone document for {original_document_id}")
             book_id = "unknown_book"
-            namespaced_document_id = f"{book_id}_{original_document_id}"
+            clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
+            namespaced_document_id = f"{clean_book_id}_{original_document_id}"
         
         # logger.info(f"Found namespaced document_id: {namespaced_document_id} for original: {original_document_id}")
         
@@ -883,7 +905,73 @@ class OpenStaxXMLParser:
         # Process sections and standalone content
         sections = module_data.get('sections', [])
         for section_data in sections:
-            if section_data['type'] == 'section':
+            if section_data['type'] == 'subsection':
+                # Handle subsections that exist directly under documents (not within sections)
+                subsection_id = section_data.get('section_id', '')
+                subsection_title = section_data.get('title', '')
+                
+                # Validate subsection data
+                if not subsection_id:
+                    logger.warning(f"Subsection missing section_id! Subsection data: {section_data}")
+                    continue
+                if not subsection_title:
+                    logger.warning(f"Subsection {subsection_id} missing title! Subsection data: {section_data}")
+                
+                # Create namespaced subsection ID
+                namespaced_subsection_id = f"{clean_book_id}_{subsection_id}"
+                
+                subsection_data = {
+                    'subsection_id': namespaced_subsection_id,
+                    'section_id': None,  # Direct subsection under document
+                    'title': subsection_title,
+                    'uuid': '',
+                    'order': len(nodes),
+                    'lens': 'structural',
+                    'created_at': datetime.now().isoformat()
+                }
+                nodes.append(('Subsection', subsection_data))
+                
+                # Create DOCUMENT_CONTAINS_SUBSECTION relationship using namespaced IDs
+                relationships.append(('DOCUMENT_CONTAINS_SUBSECTION', namespaced_document_id, namespaced_subsection_id))
+                
+                # Process subsection content (paragraphs)
+                for subsection_content in section_data.get('content', []):
+                    if subsection_content['type'] == 'paragraph':
+                        # Create namespaced paragraph ID
+                        original_paragraph_id = subsection_content['paragraph_id']
+                        namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
+                        
+                        paragraph_data = {
+                            'paragraph_id': namespaced_paragraph_id,
+                            'subsection_id': namespaced_subsection_id,
+                            'text': subsection_content['text'],
+                            'uuid': '',
+                            'order': len(nodes),
+                            'lens': 'content',
+                            'created_at': datetime.now().isoformat()
+                        }
+                        nodes.append(('Paragraph', paragraph_data))
+                        
+                        # Create SUBSECTION_CONTAINS_PARAGRAPH relationship
+                        relationships.append(('SUBSECTION_CONTAINS_PARAGRAPH', namespaced_subsection_id, namespaced_paragraph_id))
+                        
+                        # Create sentence nodes
+                        for i, sentence_text in enumerate(subsection_content.get('sentences', [])):
+                            sentence_data = {
+                                'sentence_id': f"{namespaced_paragraph_id}_sent_{i}",
+                                'paragraph_id': namespaced_paragraph_id,
+                                'text': sentence_text,
+                                'uuid': '',
+                                'order': i,
+                                'lens': 'content',
+                                'created_at': datetime.now().isoformat()
+                            }
+                            nodes.append(('Sentence', sentence_data))
+                            
+                            # Create PARAGRAPH_CONTAINS_SENTENCE relationship
+                            relationships.append(('PARAGRAPH_CONTAINS_SENTENCE', namespaced_paragraph_id, sentence_data['sentence_id']))
+            
+            elif section_data['type'] == 'section':
                 section_id = section_data.get('section_id', '')
                 section_title = section_data.get('title', '')
                 
@@ -895,7 +983,7 @@ class OpenStaxXMLParser:
                     logger.warning(f"Section {section_id} missing title! Section data: {section_data}")
                 
                 # Create namespaced section ID
-                namespaced_section_id = f"{book_id}_{section_id}"
+                namespaced_section_id = f"{clean_book_id}_{section_id}"
                 
                 section_node_data = {
                     'section_id': namespaced_section_id,
@@ -931,7 +1019,7 @@ class OpenStaxXMLParser:
                             logger.warning(f"Subsection {subsection_id} missing title! Subsection data: {content_item}")
                         
                         # Create namespaced subsection ID
-                        namespaced_subsection_id = f"{book_id}_{subsection_id}"
+                        namespaced_subsection_id = f"{clean_book_id}_{subsection_id}"
                         
                         subsection_data = {
                             'subsection_id': namespaced_subsection_id,
@@ -952,7 +1040,7 @@ class OpenStaxXMLParser:
                             if subsection_content['type'] == 'paragraph':
                                 # Create namespaced paragraph ID
                                 original_paragraph_id = subsection_content['paragraph_id']
-                                namespaced_paragraph_id = f"{book_id}_{original_paragraph_id}"
+                                namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
                                 
                                 paragraph_data = {
                                     'paragraph_id': namespaced_paragraph_id,
@@ -987,7 +1075,7 @@ class OpenStaxXMLParser:
                     elif content_item['type'] == 'paragraph':
                         # Create namespaced paragraph ID
                         original_paragraph_id = content_item['paragraph_id']
-                        namespaced_paragraph_id = f"{book_id}_{original_paragraph_id}"
+                        namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
                         
                         paragraph_data = {
                             'paragraph_id': namespaced_paragraph_id,
@@ -1037,7 +1125,7 @@ class OpenStaxXMLParser:
             elif section_data['type'] == 'paragraph':
                 # Create namespaced paragraph ID for standalone paragraphs
                 original_paragraph_id = section_data['paragraph_id']
-                namespaced_paragraph_id = f"{book_id}_{original_paragraph_id}"
+                namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
                 
                 paragraph_data = {
                     'paragraph_id': namespaced_paragraph_id,
@@ -1118,10 +1206,12 @@ class OpenStaxXMLParser:
                 # Map relationship types to method names
                 method_map = {
                     'BOOK_CONTAINS_CHAPTER': self.relationship_creator.create_book_contains_chapter_relationship,
+                    'BOOK_CONTAINS_DOCUMENT': self.relationship_creator.create_book_contains_document_relationship,
                     'CHAPTER_CONTAINS_SUBCHAPTER': self.relationship_creator.create_chapter_contains_subchapter_relationship,
                     'CHAPTER_CONTAINS_DOCUMENT': self.relationship_creator.create_chapter_contains_document_relationship,
                     'SUBCHAPTER_CONTAINS_DOCUMENT': self.relationship_creator.create_subchapter_contains_document_relationship,
                     'DOCUMENT_CONTAINS_SECTION': self.relationship_creator.create_document_contains_section_relationship,
+                    'DOCUMENT_CONTAINS_SUBSECTION': self.relationship_creator.create_document_contains_subsection_relationship,
                     'DOCUMENT_CONTAINS_PARAGRAPH': self.relationship_creator.create_document_contains_paragraph_relationship,
                     'SECTION_CONTAINS_SUBSECTION': self.relationship_creator.create_section_contains_subsection_relationship,
                     'SECTION_CONTAINS_PARAGRAPH': self.relationship_creator.create_section_contains_paragraph_relationship,
@@ -1148,10 +1238,12 @@ class OpenStaxXMLParser:
         # Map CONTAINS relationships to their BELONGS_TO counterparts
         bidirectional_map = {
             'BOOK_CONTAINS_CHAPTER': ('CHAPTER_BELONGS_TO_BOOK', self.relationship_creator.create_chapter_belongs_to_book_relationship),
+            'BOOK_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_BOOK', self.relationship_creator.create_document_belongs_to_book_relationship),
             'CHAPTER_CONTAINS_SUBCHAPTER': ('SUBCHAPTER_BELONGS_TO_CHAPTER', self.relationship_creator.create_subchapter_belongs_to_chapter_relationship),
             'CHAPTER_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_CHAPTER', self.relationship_creator.create_document_belongs_to_chapter_relationship),
             'SUBCHAPTER_CONTAINS_DOCUMENT': ('DOCUMENT_BELONGS_TO_SUBCHAPTER', self.relationship_creator.create_document_belongs_to_subchapter_relationship),
             'DOCUMENT_CONTAINS_SECTION': ('SECTION_BELONGS_TO_DOCUMENT', self.relationship_creator.create_section_belongs_to_document_relationship),
+            'DOCUMENT_CONTAINS_SUBSECTION': ('SUBSECTION_BELONGS_TO_DOCUMENT', self.relationship_creator.create_subsection_belongs_to_document_relationship),
             'DOCUMENT_CONTAINS_PARAGRAPH': ('PARAGRAPH_BELONGS_TO_DOCUMENT', self.relationship_creator.create_paragraph_belongs_to_document_relationship),
             'SECTION_CONTAINS_SUBSECTION': ('SUBSECTION_BELONGS_TO_SECTION', self.relationship_creator.create_subsection_belongs_to_section_relationship),
             'SECTION_CONTAINS_PARAGRAPH': ('PARAGRAPH_BELONGS_TO_SECTION', self.relationship_creator.create_paragraph_belongs_to_section_relationship),
@@ -1176,12 +1268,15 @@ class OpenStaxXMLParser:
         """Create concept nodes and SENTENCE_CONTAINS_CONCEPT relationships for extracted concepts."""
         relationships = []
         
+        # Convert book_id to clean format for namespaced ID
+        clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
+        
         for i, concept_text in enumerate(concepts):
             if not concept_text.strip():
                 continue
                 
             # Create namespaced concept ID
-            concept_id = f"{book_id}_concept_{sentence_id}_{i}"
+            concept_id = f"{clean_book_id}_concept_{sentence_id}_{i}"
             
             concept_data = {
                 'concept_id': concept_id,
@@ -1285,6 +1380,11 @@ class OpenStaxXMLParser:
             
             # Set up document map for module processing
             self._debug_document_map = document_parent_map
+            # Extract collection_book_id from the collection metadata
+            metadata = collection_data.get('metadata', {})
+            collection_name = collection_file.stem
+            book_id = metadata.get('slug', collection_name)
+            self._collection_book_id = book_id
             
             # Process only modules referenced in this collection
             modules_dir = textbook_dir / "modules"
@@ -1342,6 +1442,18 @@ class OpenStaxXMLParser:
                 
                 print(f"    Processed {processed_modules} modules ({total_nodes} nodes, {total_relationships} relationships)")
             
+            # Fix any orphaned nodes that may have been created during processing
+            if not dry_run:
+                print("  Fixing orphaned nodes...")
+                fixes = self.fix_orphaned_nodes()
+                if fixes['orphaned_sentences_fixed'] > 0 or fixes['orphaned_documents_fixed'] > 0 or fixes['orphaned_subsections_fixed'] > 0:
+                    print(f"    Fixed {fixes['orphaned_sentences_fixed']} orphaned sentences")
+                    print(f"    Fixed {fixes['orphaned_documents_fixed']} orphaned documents")
+                    print(f"    Fixed {fixes['orphaned_subsections_fixed']} orphaned subsections")
+                    print(f"    Created {fixes['missing_paragraphs_created']} missing paragraph nodes")
+                else:
+                    print("    No orphaned nodes found")
+            
             return True
             
         except Exception as e:
@@ -1398,6 +1510,232 @@ class OpenStaxXMLParser:
         except Exception as e:
             logger.error(f"Error verifying import: {e}")
             return None
+
+    def fix_orphaned_nodes(self, database: str = None) -> Dict[str, int]:
+        """
+        Fix orphaned nodes by creating missing relationships and nodes.
+        
+        Args:
+            database: Database name (uses instance database if None)
+            
+        Returns:
+            Dictionary with counts of fixed nodes
+        """
+        if database is None:
+            database = self.node_creator.database
+        
+        logger.info("Starting orphaned node fixing process...")
+        
+        # Ensure driver is connected
+        if not self.node_creator.driver:
+            self.node_creator._connect()
+        
+        with self.node_creator.driver.session(database=database) as session:
+            fixes = {
+                'orphaned_sentences_fixed': 0,
+                'orphaned_documents_fixed': 0,
+                'orphaned_subsections_fixed': 0,
+                'missing_paragraphs_created': 0
+            }
+            
+            # Fix orphaned sentences by creating missing paragraph nodes
+            logger.info("Fixing orphaned sentences...")
+            result = session.run("""
+                MATCH (s:Sentence)
+                WHERE NOT (s)-[:PARAGRAPH_CONTAINS_SENTENCE]-()
+                WITH s.paragraph_id as paragraph_id, collect(s) as sentences
+                RETURN paragraph_id, sentences
+                ORDER BY paragraph_id
+            """)
+            
+            paragraphs_to_create = {}
+            total_sentences = 0
+            
+            for record in result:
+                paragraph_id = record['paragraph_id']
+                sentences = record['sentences']
+                paragraphs_to_create[paragraph_id] = sentences
+                total_sentences += len(sentences)
+            
+            if paragraphs_to_create:
+                logger.info(f"Found {len(paragraphs_to_create)} missing paragraphs with {total_sentences} orphaned sentences")
+                
+                # Create missing paragraph nodes
+                for paragraph_id, sentences in paragraphs_to_create.items():
+                    # Extract book_id from paragraph_id
+                    parts = paragraph_id.split('_')
+                    if len(parts) >= 4:
+                        book_id = '_'.join(parts[:-1]).replace('_', '-')
+                    else:
+                        book_id = "unknown"
+                    
+                    # Create paragraph node
+                    paragraph_data = {
+                        'paragraph_id': paragraph_id,
+                        'subsection_id': None,
+                        'text': '',  # Will be reconstructed from sentences if needed
+                        'uuid': '',
+                        'order': 0,
+                        'lens': 'content',
+                        'created_at': datetime.now().isoformat()
+                    }
+                    
+                    # Create the paragraph node
+                    session.run("""
+                        MERGE (p:Paragraph {paragraph_id: $paragraph_id})
+                        ON CREATE SET p += $paragraph_data
+                    """, paragraph_id=paragraph_id, paragraph_data=paragraph_data)
+                    
+                    fixes['missing_paragraphs_created'] += 1
+                    
+                    # Create relationships between paragraph and sentences
+                    for sentence in sentences:
+                        sentence_id = sentence['sentence_id']
+                        
+                        session.run("""
+                            MATCH (p:Paragraph {paragraph_id: $paragraph_id})
+                            MATCH (s:Sentence {sentence_id: $sentence_id})
+                            MERGE (p)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s)
+                            MERGE (s)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p)
+                        """, paragraph_id=paragraph_id, sentence_id=sentence_id)
+                    
+                    fixes['orphaned_sentences_fixed'] += len(sentences)
+                
+                logger.info(f"Created {fixes['missing_paragraphs_created']} missing paragraphs and fixed {fixes['orphaned_sentences_fixed']} sentence relationships")
+            
+            # Fix orphaned documents by connecting them to their books
+            logger.info("Fixing orphaned documents...")
+            result = session.run("""
+                MATCH (d:Document)
+                WHERE NOT (d)-[:DOCUMENT_BELONGS_TO_BOOK|:DOCUMENT_BELONGS_TO_CHAPTER|:DOCUMENT_BELONGS_TO_SUBCHAPTER]-()
+                WITH d LIMIT 50
+                MATCH (b:Book {book_id: d.book_id})
+                MERGE (b)-[:BOOK_CONTAINS_DOCUMENT]->(d)
+                MERGE (d)-[:DOCUMENT_BELONGS_TO_BOOK]->(b)
+                RETURN d.document_id, b.book_id
+            """)
+            
+            for record in result:
+                fixes['orphaned_documents_fixed'] += 1
+            
+            if fixes['orphaned_documents_fixed'] > 0:
+                logger.info(f"Fixed {fixes['orphaned_documents_fixed']} orphaned document relationships")
+            
+            # Fix orphaned subsections by connecting them to their parent sections or documents
+            logger.info("Fixing orphaned subsections...")
+            result = session.run("""
+                MATCH (ss:Subsection)
+                WHERE NOT (ss)-[:SUBSECTION_BELONGS_TO_SECTION]-() 
+                  AND NOT (ss)-[:SUBSECTION_BELONGS_TO_DOCUMENT]-()
+                RETURN ss.subsection_id, ss.section_id, ss.document_id
+                LIMIT 50
+            """)
+            
+            for record in result:
+                subsection_id = record['ss.subsection_id']
+                section_id = record['ss.section_id']
+                document_id = record['ss.document_id']
+                
+                # Try to connect to section first, then document
+                if section_id:
+                    # Connect subsection to its parent section
+                    result2 = session.run("""
+                        MATCH (ss:Subsection {subsection_id: $subsection_id})
+                        MATCH (s:Section {section_id: $section_id})
+                        MERGE (s)-[:SECTION_CONTAINS_SUBSECTION]->(ss)
+                        MERGE (ss)-[:SUBSECTION_BELONGS_TO_SECTION]->(s)
+                        RETURN ss.subsection_id, s.section_id
+                    """, subsection_id=subsection_id, section_id=section_id)
+                    
+                    if result2.single():
+                        fixes['orphaned_subsections_fixed'] += 1
+                        logger.debug(f"Connected subsection {subsection_id} to section {section_id}")
+                        continue
+                
+                # If section doesn't exist, try to find the document by extracting book_id from subsection_id
+                if not section_id or not document_id:
+                    # Extract book_id from subsection_id to find the document
+                    parts = subsection_id.split('_')
+                    if len(parts) >= 4:
+                        # Extract book_id from namespaced subsection_id
+                        book_id = '_'.join(parts[:-1]).replace('_', '-')
+                        
+                        # Find any document from this book to connect the subsection to
+                        result2 = session.run("""
+                            MATCH (ss:Subsection {subsection_id: $subsection_id})
+                            MATCH (d:Document)
+                            WHERE d.document_id STARTS WITH $book_prefix
+                            WITH ss, d
+                            LIMIT 1
+                            MERGE (d)-[:DOCUMENT_CONTAINS_SUBSECTION]->(ss)
+                            MERGE (ss)-[:SUBSECTION_BELONGS_TO_DOCUMENT]->(d)
+                            RETURN ss.subsection_id, d.document_id
+                        """, subsection_id=subsection_id, book_prefix=f"{parts[0]}_{parts[1]}_{parts[2]}_")
+                        
+                        if result2.single():
+                            fixes['orphaned_subsections_fixed'] += 1
+                            logger.debug(f"Connected subsection {subsection_id} to document from same book")
+                            continue
+                
+                if document_id:
+                    # Connect subsection directly to its parent document
+                    result2 = session.run("""
+                        MATCH (ss:Subsection {subsection_id: $subsection_id})
+                        MATCH (d:Document {document_id: $document_id})
+                        MERGE (d)-[:DOCUMENT_CONTAINS_SUBSECTION]->(ss)
+                        MERGE (ss)-[:SUBSECTION_BELONGS_TO_DOCUMENT]->(d)
+                        RETURN ss.subsection_id, d.document_id
+                    """, subsection_id=subsection_id, document_id=document_id)
+                    
+                    if result2.single():
+                        fixes['orphaned_subsections_fixed'] += 1
+                        logger.debug(f"Connected subsection {subsection_id} to document {document_id}")
+                        continue
+                
+                logger.warning(f"Could not find parent for orphaned subsection {subsection_id}")
+            
+            if fixes['orphaned_subsections_fixed'] > 0:
+                logger.info(f"Fixed {fixes['orphaned_subsections_fixed']} orphaned subsection relationships")
+            
+            # Verify final state
+            result = session.run("""
+                MATCH (s:Sentence)
+                WHERE NOT (s)-[:PARAGRAPH_CONTAINS_SENTENCE]-()
+                RETURN count(s) as orphaned_sentences
+            """)
+            
+            remaining_sentences = 0
+            for record in result:
+                remaining_sentences = record['orphaned_sentences']
+            
+            result = session.run("""
+                MATCH (d:Document)
+                WHERE NOT (d)-[:DOCUMENT_BELONGS_TO_BOOK|:DOCUMENT_BELONGS_TO_CHAPTER|:DOCUMENT_BELONGS_TO_SUBCHAPTER]-()
+                RETURN count(d) as orphaned_documents
+            """)
+            
+            remaining_documents = 0
+            for record in result:
+                remaining_documents = record['orphaned_documents']
+            
+            result = session.run("""
+                MATCH (ss:Subsection)
+                WHERE NOT (ss)-[:SUBSECTION_BELONGS_TO_SECTION]-() 
+                  AND NOT (ss)-[:SUBSECTION_BELONGS_TO_DOCUMENT]-()
+                RETURN count(ss) as orphaned_subsections
+            """)
+            
+            remaining_subsections = 0
+            for record in result:
+                remaining_subsections = record['orphaned_subsections']
+            
+            fixes['remaining_orphaned_sentences'] = remaining_sentences
+            fixes['remaining_orphaned_documents'] = remaining_documents
+            fixes['remaining_orphaned_subsections'] = remaining_subsections
+            
+            logger.info(f"Orphaned node fixing complete. Remaining: {remaining_sentences} sentences, {remaining_documents} documents, {remaining_subsections} subsections")
+            
+            return fixes
 
     def close_connections(self):
         """Close Neo4j connections."""

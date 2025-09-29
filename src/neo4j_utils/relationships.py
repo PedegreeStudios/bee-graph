@@ -81,6 +81,22 @@ class Neo4jRelationshipCreator:
             print(f"Error creating BOOK_CONTAINS_CHAPTER relationship: {e}")
             return False
 
+    def create_book_contains_document_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
+        """Create a BOOK_CONTAINS_DOCUMENT relationship."""
+        try:
+            self._connect()
+            with self.driver.session(database=self.database) as session:
+                query = """
+                MATCH (b:Book {book_id: $source_id}), (d:Document {document_id: $target_id})
+                MERGE (b)-[:BOOK_CONTAINS_DOCUMENT]->(d)
+                """
+                session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
+                print(f"Created BOOK_CONTAINS_DOCUMENT: {source_id} -> {target_id}")
+                return True
+        except Exception as e:
+            print(f"Error creating BOOK_CONTAINS_DOCUMENT relationship: {e}")
+            return False
+
     def create_chapter_contains_subchapter_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
         """Create a CHAPTER_CONTAINS_SUBCHAPTER relationship."""
         try:
@@ -143,6 +159,22 @@ class Neo4jRelationshipCreator:
                 return True
         except Exception as e:
             print(f"Error creating DOCUMENT_CONTAINS_SECTION relationship: {e}")
+            return False
+
+    def create_document_contains_subsection_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
+        """Create a DOCUMENT_CONTAINS_SUBSECTION relationship."""
+        try:
+            self._connect()
+            with self.driver.session(database=self.database) as session:
+                query = """
+                MATCH (d:Document {document_id: $source_id}), (ss:Subsection {subsection_id: $target_id})
+                MERGE (d)-[:DOCUMENT_CONTAINS_SUBSECTION]->(ss)
+                """
+                session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
+                print(f"Created DOCUMENT_CONTAINS_SUBSECTION: {source_id} -> {target_id}")
+                return True
+        except Exception as e:
+            print(f"Error creating DOCUMENT_CONTAINS_SUBSECTION relationship: {e}")
             return False
 
     def create_document_contains_paragraph_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
@@ -340,6 +372,23 @@ class Neo4jRelationshipCreator:
             print(f"Error creating SECTION_BELONGS_TO_DOCUMENT relationship: {e}")
             return False
     
+    #subsection belongs to document
+    def create_subsection_belongs_to_document_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
+        """Create a SUBSECTION_BELONGS_TO_DOCUMENT relationship."""
+        try:
+            self._connect()
+            with self.driver.session(database=self.database) as session:
+                query = """
+                MATCH (ss:Subsection {subsection_id: $source_id}), (d:Document {document_id: $target_id})
+                MERGE (ss)-[:SUBSECTION_BELONGS_TO_DOCUMENT]->(d)
+                """
+                session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
+                print(f"Created SUBSECTION_BELONGS_TO_DOCUMENT: {source_id} -> {target_id}")
+                return True
+        except Exception as e:
+            print(f"Error creating SUBSECTION_BELONGS_TO_DOCUMENT relationship: {e}")
+            return False
+
     #paragraph belongs to document 
     def create_paragraph_belongs_to_document_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
         """Create a PARAGRAPH_BELONGS_TO_DOCUMENT relationship."""
@@ -376,6 +425,24 @@ class Neo4jRelationshipCreator:
             return False
     
     
+    #document belongs to book
+    def create_document_belongs_to_book_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
+        """Create a DOCUMENT_BELONGS_TO_BOOK relationship."""
+        try:
+            self._connect()
+            with self.driver.session(database=self.database) as session:
+                query = """
+                MATCH (d:Document {document_id: $source_id})
+                MATCH (b:Book {book_id: $target_id})
+                MERGE (d)-[:DOCUMENT_BELONGS_TO_BOOK]->(b)
+                """
+                session.run(query, {"source_id": source_id, "target_id": target_id, **kwargs})
+                print(f"Created DOCUMENT_BELONGS_TO_BOOK: {source_id} -> {target_id}")
+                return True
+        except Exception as e:
+            print(f"Error creating DOCUMENT_BELONGS_TO_BOOK relationship: {e}")
+            return False
+
     #document belongs to chapter 
     def create_document_belongs_to_chapter_relationship(self, source_id: str, target_id: str, **kwargs) -> bool:
         """Create a DOCUMENT_BELONGS_TO_CHAPTER relationship."""
