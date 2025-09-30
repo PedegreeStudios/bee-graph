@@ -63,6 +63,9 @@ from textbook_parse.xml_parser import OpenStaxXMLParser
 from textbook_parse.bulk_import import create_bulk_importer
 from textbook_parse.concept_extraction.main import ConceptExtractionSystem
 from textbook_parse.concept_extraction.sequential_processor import SequentialCollectionProcessor
+from neo4j_utils.relationships import Neo4jRelationshipCreator
+from typing import List, Dict
+from datetime import datetime
 from neo4j_utils import Neo4jSchemaSetup, Neo4jNodeCreator, Neo4jRelationshipCreator
 from neo4j import GraphDatabase
 
@@ -80,6 +83,335 @@ logging.getLogger('textbook_parse').setLevel(logging.CRITICAL)
 # Enable INFO logging for concept extraction
 logging.getLogger('textbook_parse.concept_extraction').setLevel(logging.INFO)
 
+def check_for_json_resume_files(textbook_dir: Path) -> List[Path]:
+    """Check for existing JSON files that can be used for resume processing.
+    
+    This function looks for JSON files based on the actual collection names in the textbook.
+    It searches for files with the pattern [collection_name]_sentences.json.
+    
+    Args:
+        textbook_dir: Path to the textbook directory
+        
+    Returns:
+        List of JSON file paths that exist and can be used for resume
+    """
+    json_files = []
+    
+    # Get collection names from the textbook directory
+    collections_dir = textbook_dir / "collections"
+    if not collections_dir.exists():
+        print(f"No collections directory found in {textbook_dir}")
+        return json_files
+    
+    # Find all collection XML files
+    collection_files = list(collections_dir.glob("*.xml"))
+    if not collection_files:
+        print(f"No collection XML files found in {collections_dir}")
+        return json_files
+    
+    print(f"Checking for JSON resume files for {len(collection_files)} collections...")
+    
+    # Look for corresponding JSON files based on collection names
+    for collection_file in collection_files:
+        collection_name = collection_file.stem
+        
+        # Remove .collection suffix if present to match the expected JSON file naming
+        if collection_name.endswith('.collection'):
+            collection_name = collection_name[:-10]  # Remove '.collection'
+        
+        # Also remove any trailing periods that might be present
+        collection_name = collection_name.rstrip('.')
+        
+        # Look for [collection_name]_sentences.json file in the project root
+        # (JSON files are typically in the same directory as the script)
+        project_root = textbook_dir.parent.parent  # Go up from textbooks/ to project root
+        json_file = project_root / f"{collection_name}_sentences.json"
+        
+        if json_file.exists():
+            json_files.append(json_file)
+            print(f"Found resume file: {json_file.name} (for collection: {collection_name})")
+        else:
+            print(f"No resume file found: {json_file.name} (for collection: {collection_name})")
+    
+    return json_files
+
+def ensure_sentence_paragraph_relationships(uri: str, username: str, password: str, database: str, sentence_ids: List[str]) -> Dict[str, int]:
+    """Ensure sentences are properly connected to paragraphs using the same method as XML parser.
+    
+    Args:
+        uri: Neo4j URI
+        username: Neo4j username  
+        password: Neo4j password
+        database: Neo4j database name
+        sentence_ids: List of sentence IDs to check/connect
+        
+    Returns:
+        Dictionary with relationship creation statistics
+    """
+    driver = GraphDatabase.driver(uri, auth=(username, password))
+    rel_creator = Neo4jRelationshipCreator(uri, username, password, database)
+    
+    stats = {
+        'sentences_checked': 0,
+        'relationships_created': 0,
+        'missing_paragraphs_created': 0
+    }
+    
+    try:
+        with driver.session(database=database) as session:
+            # Check which sentences need paragraph relationships
+            check_query = """
+            MATCH (s:Sentence)
+            WHERE s.sentence_id IN $sentence_ids
+            AND NOT (s)<-[:PARAGRAPH_CONTAINS_SENTENCE]-()
+            RETURN s.sentence_id as sentence_id, s.paragraph_id as paragraph_id
+            """
+            
+            result = session.run(check_query, sentence_ids=sentence_ids)
+            disconnected_sentences = [(record['sentence_id'], record['paragraph_id']) for record in result]
+            
+            stats['sentences_checked'] = len(sentence_ids)
+            
+            if not disconnected_sentences:
+                print("All sentences already have proper paragraph relationships")
+                return stats
+            
+            print(f"Found {len(disconnected_sentences)} sentences without paragraph relationships")
+            
+            # Group by paragraph_id to create missing paragraphs
+            paragraph_groups = {}
+            for sentence_id, paragraph_id in disconnected_sentences:
+                if paragraph_id not in paragraph_groups:
+                    paragraph_groups[paragraph_id] = []
+                paragraph_groups[paragraph_id].append(sentence_id)
+            
+            # Create missing paragraphs and connect sentences
+            for paragraph_id, sentences in paragraph_groups.items():
+                # Check if paragraph exists
+                paragraph_check = session.run(
+                    "MATCH (p:Paragraph {paragraph_id: $paragraph_id}) RETURN p",
+                    paragraph_id=paragraph_id
+                )
+                
+                if not paragraph_check.single():
+                    # Create missing paragraph node
+                    paragraph_data = {
+                        'paragraph_id': paragraph_id,
+                        'text': '',  # Will be updated later if needed
+                        'uuid': '',
+                        'order': 0,
+                        'lens': 'content',
+                        'created_at': datetime.now().isoformat()
+                    }
+                    
+                    session.run("""
+                        CREATE (p:Paragraph {
+                            paragraph_id: $paragraph_id,
+                            text: $text,
+                            uuid: $uuid,
+                            order: $order,
+                            lens: $lens,
+                            created_at: $created_at
+                        })
+                    """, paragraph_data)
+                    
+                    stats['missing_paragraphs_created'] += 1
+                    print(f"Created missing paragraph: {paragraph_id}")
+                
+                # Connect sentences to paragraph using the same method as XML parser
+                for sentence_id in sentences:
+                    # Use the same relationship creation methods as XML parser
+                    if rel_creator.create_paragraph_contains_sentence_relationship(paragraph_id, sentence_id):
+                        rel_creator.create_sentence_belongs_paragraph_relationship(sentence_id, paragraph_id)
+                        stats['relationships_created'] += 2  # Bidirectional
+                
+                print(f"Connected {len(sentences)} sentences to paragraph {paragraph_id}")
+            
+            print(f"Relationship creation completed: {stats['relationships_created']} relationships created")
+            
+    except Exception as e:
+        print(f"Error ensuring sentence-paragraph relationships: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        driver.close()
+    
+    return stats
+
+def resume_from_json_files(sequential_processor, json_files: List[Path], force: bool = False) -> Dict[str, int]:
+    """Resume processing from existing JSON files, ensuring proper relationships.
+    
+    Args:
+        sequential_processor: SequentialCollectionProcessor instance
+        json_files: List of JSON file paths to process
+        
+    Returns:
+        Dictionary with processing statistics
+    """
+    total_stats = {
+        'sentences_processed': 0,
+        'relationships_created': 0,
+        'concepts_imported': 0,
+        'files_processed': 0
+    }
+    
+    for json_file in json_files:
+        print(f"\nProcessing resume file: {json_file.name}")
+        
+        try:
+            # First, ensure sentences have proper paragraph relationships
+            import json
+            with open(json_file, 'r', encoding='utf-8') as f:
+                sentences_data = json.load(f)
+            
+            sentence_ids = list(sentences_data.keys())
+            
+            # Ensure proper sentence-to-paragraph relationships
+            print(f"Ensuring proper relationships for {len(sentence_ids)} sentences...")
+            relationship_stats = ensure_sentence_paragraph_relationships(
+                sequential_processor.neo4j_uri,
+                sequential_processor.neo4j_user, 
+                sequential_processor.neo4j_password,
+                sequential_processor.neo4j_database,
+                sentence_ids
+            )
+            
+            total_stats['relationships_created'] += relationship_stats['relationships_created']
+            
+            # Now import concepts using the existing method or force re-import
+            if force:
+                print(f"Force re-importing concepts from {json_file.name}...")
+                concept_stats = force_import_concepts_from_sentence_file(sequential_processor, json_file)
+            else:
+                print(f"Importing concepts from {json_file.name}...")
+                concept_stats = sequential_processor.import_concepts_from_sentence_file(json_file)
+            
+            total_stats['sentences_processed'] += concept_stats['sentences_processed']
+            total_stats['concepts_imported'] += concept_stats['concepts_imported']
+            total_stats['files_processed'] += 1
+            
+            print(f"File {json_file.name} completed:")
+            print(f"  Sentences: {concept_stats['sentences_processed']}")
+            print(f"  Concepts: {concept_stats['concepts_imported']}")
+            print(f"  Relationships: {concept_stats['relationships_created']}")
+            
+        except Exception as e:
+            print(f"Error processing {json_file.name}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    return total_stats
+
+def force_import_concepts_from_sentence_file(sequential_processor, sentences_file: Path) -> Dict[str, int]:
+    """Force import concepts from a sentence file, bypassing existing checks and recreating all nodes.
+    
+    This function forces re-import of concepts even if they already exist, ensuring all expected
+    fields are populated with standard property keys.
+    
+    Args:
+        sequential_processor: SequentialCollectionProcessor instance
+        sentences_file: Path to the sentence file containing extracted concepts
+        
+    Returns:
+        Dictionary with import statistics
+    """
+    stats = {
+        'sentences_processed': 0,
+        'concepts_imported': 0,
+        'relationships_created': 0
+    }
+    
+    try:
+        # Load sentences data
+        import json
+        with open(sentences_file, 'r', encoding='utf-8') as f:
+            sentences_data = json.load(f)
+        
+        print(f"Force importing concepts from {sentences_file}")
+        
+        with sequential_processor.driver.session(database=sequential_processor.neo4j_database) as session:
+            for sentence_id, sentence_data in sentences_data.items():
+                entities = sentence_data.get('entities', {})
+                
+                if entities:
+                    # Process each entity with a Wikidata ID
+                    for entity_name, entity_data in entities.items():
+                        if entity_data.get('wikidata_id'):
+                            wikidata_id = entity_data['wikidata_id']
+                            
+                            # Force create/update concept node with all expected fields
+                            force_concept_query = """
+                            // First, verify the sentence exists
+                            MATCH (s:Sentence {sentence_id: $sentence_id})
+                            
+                            // Only proceed if sentence exists
+                            WITH s
+                            
+                            // Force create/update the concept node with all expected fields
+                            MERGE (c:Concept {wikidata_id: $wikidata_id})
+                            ON CREATE SET
+                                c.name = $name,
+                                c.wikidata_name = $name,
+                                c.label = $name,
+                                c.description = $description,
+                                c.aliases = $aliases,
+                                c.wikidata_url = $wikidata_url,
+                                c.created_at = datetime(),
+                                c.updated_at = datetime()
+                            ON MATCH SET
+                                c.name = $name,
+                                c.wikidata_name = $name,
+                                c.label = $name,
+                                c.description = $description,
+                                c.aliases = $aliases,
+                                c.wikidata_url = $wikidata_url,
+                                c.updated_at = datetime()
+                            
+                            // Force recreate bidirectional relationships
+                            MERGE (s)-[r1:SENTENCE_CONTAINS_CONCEPT]->(c)
+                            ON CREATE SET r1.created_at = datetime()
+                            ON MATCH SET r1.updated_at = datetime()
+                            
+                            MERGE (c)-[r2:CONCEPT_BELONGS_TO_SENTENCE]->(s)
+                            ON CREATE SET r2.created_at = datetime()
+                            ON MATCH SET r2.updated_at = datetime()
+                            
+                            RETURN c.wikidata_id as concept_id
+                            """
+                            
+                            # Apply standard property keys for missing fields
+                            description = entity_data.get('description', entity_name)
+                            aliases = entity_data.get('aliases', [entity_name])
+                            wikidata_url = f"https://www.wikidata.org/wiki/{wikidata_id}"
+                            
+                            result = session.run(force_concept_query, {
+                                'sentence_id': sentence_id,
+                                'name': entity_name,
+                                'wikidata_id': wikidata_id,
+                                'description': description,
+                                'aliases': aliases,
+                                'wikidata_url': wikidata_url
+                            })
+                            
+                            record = result.single()
+                            if record:
+                                stats['concepts_imported'] += 1
+                                stats['relationships_created'] += 2  # Bidirectional
+                
+                stats['sentences_processed'] += 1
+                
+                # Progress update
+                if stats['sentences_processed'] % 1000 == 0:
+                    print(f"  Force processed {stats['sentences_processed']} sentences, imported {stats['concepts_imported']} concepts")
+        
+        print(f"Force concept import completed: {stats['concepts_imported']} concepts force imported for {stats['sentences_processed']} sentences")
+        return stats
+        
+    except Exception as e:
+        print(f"Error force importing concepts from {sentences_file}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 def check_collection_exists(uri: str, username: str, password: str, database: str, collection_name: str) -> bool:
     """Check if a collection already exists in the database."""
@@ -355,6 +687,8 @@ def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str
         from pathlib import Path
         sys.path.append(str(Path(__file__).parent.parent))
         from src.textbook_parse.xml_parser import OpenStaxXMLParser
+        from src.textbook_parse.concept_extraction.concept_manager import ConceptManager
+        from neo4j import GraphDatabase
         
         print("FIXING ORPHANED NODES")
         print("=" * 50)
@@ -368,6 +702,13 @@ def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str
         # Run the orphaned node fixing process
         fixes = parser.fix_orphaned_nodes(database)
         
+        # Clean up orphaned concept nodes
+        print("\nCleaning up orphaned concept nodes...")
+        driver = GraphDatabase.driver(uri, auth=(username, password))
+        concept_manager = ConceptManager(driver)
+        orphaned_concepts_removed = concept_manager.cleanup_orphaned_concepts()
+        driver.close()
+        
         # Display results
         print("\nORPHANED NODE FIXING RESULTS")
         print("=" * 50)
@@ -375,6 +716,7 @@ def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str
         print(f"Orphaned documents fixed: {fixes['orphaned_documents_fixed']}")
         print(f"Orphaned subsections fixed: {fixes['orphaned_subsections_fixed']}")
         print(f"Missing paragraphs created: {fixes['missing_paragraphs_created']}")
+        print(f"Orphaned concepts removed: {orphaned_concepts_removed}")
         print(f"Remaining orphaned sentences: {fixes['remaining_orphaned_sentences']}")
         print(f"Remaining orphaned documents: {fixes['remaining_orphaned_documents']}")
         print(f"Remaining orphaned subsections: {fixes['remaining_orphaned_subsections']}")
@@ -387,6 +729,21 @@ def cleanup_orphaned_nodes(uri: str, username: str, password: str, database: str
     except Exception as e:
         print(f"Error fixing orphaned nodes: {e}")
         return False
+
+
+def get_all_available_textbooks() -> List[Path]:
+    """Get all available textbook directories."""
+    textbooks_dir = Path("textbooks")
+    available_textbooks = []
+    
+    if textbooks_dir.exists():
+        for textbook_dir in textbooks_dir.iterdir():
+            if (textbook_dir.is_dir() and 
+                textbook_dir.name.startswith('osbooks-') and 
+                (textbook_dir / "collections").exists()):
+                available_textbooks.append(textbook_dir)
+    
+    return sorted(available_textbooks)
 
 
 def clear_entire_database(uri: str, username: str, password: str, database: str) -> bool:
@@ -428,7 +785,7 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 
 
 @click.command()
-@click.option('--textbook-path', help='Path to OpenStax textbook directory')
+@click.option('--textbook-path', help='Path to OpenStax textbook directory (or "all" to load all available textbooks)')
 @click.option('--collection', help='Specific collection to import (optional, defaults to all collections)')
 @click.option('--cleanup', is_flag=True, help='Clear existing data before import')
 @click.option('--dry-run', is_flag=True, help='Parse files without importing to database')
@@ -436,10 +793,11 @@ def clear_entire_database(uri: str, username: str, password: str, database: str)
 @click.option('--list-textbooks', is_flag=True, help='List available textbooks and collections in database')
 @click.option('--no-concepts', is_flag=True, help='Skip concept extraction (concepts are extracted by default)')
 @click.option('--workers', type=int, default=4, help='Number of workers for concept extraction (default: 4)')
+@click.option('--force', is_flag=True, help='Force re-import of concepts from JSON files, bypassing existing checks')
 @click.option('--delete-textbook', help='Delete all collections from a specific textbook (provide textbook name)')
 @click.option('--delete-collection', help='Delete a specific collection (provide collection name)')
 @click.option('--cleanup-orphans', is_flag=True, help='Clean up orphaned nodes (nodes without relationships)')
-def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list_collections: bool, list_textbooks: bool, no_concepts: bool, workers: int, delete_textbook: str, delete_collection: str, cleanup_orphans: bool):
+def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list_collections: bool, list_textbooks: bool, no_concepts: bool, workers: int, force: bool, delete_textbook: str, delete_collection: str, cleanup_orphans: bool):
     """Load OpenStax textbook content into Neo4j database with automatic concept extraction.
     
     This script loads textbook content and automatically extracts concepts using Wikidata.
@@ -533,6 +891,7 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
     if not textbook_path and not list_collections:
         print("ERROR: --textbook-path is required for loading operations")
         print("Use --help to see available options")
+        print("Use 'all' as textbook-path to load all available textbooks")
         return
     
     # Record start time
@@ -733,8 +1092,25 @@ def main(textbook_path: str, collection: str, cleanup: bool, dry_run: bool, list
                 max_workers=workers
             )
             
+            # Check for resume capability - look for existing JSON files
+            resume_from_json = check_for_json_resume_files(textbook_dir)
+            if resume_from_json:
+                if force:
+                    print(f"\nFound existing JSON files for FORCED re-import processing...")
+                    print(f"Force flag enabled - bypassing existing checks and re-importing all concepts...")
+                else:
+                    print(f"\nFound existing JSON files for resume processing...")
+                    print(f"Processing JSON files to ensure proper sentence-to-paragraph relationships...")
+                
+                json_stats = resume_from_json_files(sequential_processor, resume_from_json, force=force)
+                print(f"JSON processing completed: {json_stats}")
+            
             try:
-                concept_stats = sequential_processor.process_collections_sequentially(textbook_path)
+                # Pass force flag to sequential processor if needed
+                if force:
+                    concept_stats = sequential_processor.process_collections_sequentially(textbook_path, force=force)
+                else:
+                    concept_stats = sequential_processor.process_collections_sequentially(textbook_path)
                 
                 print("\n=== CONCEPT EXTRACTION COMPLETE ===")
                 print(f"Collections processed: {concept_stats['collections_processed']}")

@@ -671,8 +671,8 @@ class OpenStaxXMLParser:
         # Helper function to create namespaced IDs
         def create_namespaced_id(original_id: str) -> str:
             """Create a namespaced ID to prevent conflicts across textbooks."""
-            clean_book_id = book_id.replace('.collection', '').replace('-', '_').replace(' ', '_').lower()
-            return f"{clean_book_id}_{original_id}"
+            clean_book_id = book_id.replace('.collection', '').replace(' ', '-').lower()
+            return f"{clean_book_id}-{original_id}"
         
         # Process content hierarchy recursively
         content = collection_data.get('content', [])
@@ -868,13 +868,13 @@ class OpenStaxXMLParser:
                     book_id = "unknown_book"
                 
                 # Convert book_id to clean format for namespaced ID
-                clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
-                namespaced_document_id = f"{clean_book_id}_{original_document_id}"
+                clean_book_id = book_id.replace(' ', '-').lower()
+                namespaced_document_id = f"{clean_book_id}-{original_document_id}"
         else:
             logger.warning(f"No document map available - creating standalone document for {original_document_id}")
             book_id = "unknown_book"
-            clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
-            namespaced_document_id = f"{clean_book_id}_{original_document_id}"
+            clean_book_id = book_id.replace(' ', '-').lower()
+            namespaced_document_id = f"{clean_book_id}-{original_document_id}"
         
         # logger.info(f"Found namespaced document_id: {namespaced_document_id} for original: {original_document_id}")
         
@@ -918,7 +918,7 @@ class OpenStaxXMLParser:
                     logger.warning(f"Subsection {subsection_id} missing title! Subsection data: {section_data}")
                 
                 # Create namespaced subsection ID
-                namespaced_subsection_id = f"{clean_book_id}_{subsection_id}"
+                namespaced_subsection_id = f"{clean_book_id}-{subsection_id}"
                 
                 subsection_data = {
                     'subsection_id': namespaced_subsection_id,
@@ -939,7 +939,7 @@ class OpenStaxXMLParser:
                     if subsection_content['type'] == 'paragraph':
                         # Create namespaced paragraph ID
                         original_paragraph_id = subsection_content['paragraph_id']
-                        namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
+                        namespaced_paragraph_id = f"{clean_book_id}-{original_paragraph_id}"
                         
                         paragraph_data = {
                             'paragraph_id': namespaced_paragraph_id,
@@ -958,7 +958,7 @@ class OpenStaxXMLParser:
                         # Create sentence nodes
                         for i, sentence_text in enumerate(subsection_content.get('sentences', [])):
                             sentence_data = {
-                                'sentence_id': f"{namespaced_paragraph_id}_sent_{i}",
+                                'sentence_id': f"{namespaced_paragraph_id}-sent-{i}",
                                 'paragraph_id': namespaced_paragraph_id,
                                 'text': sentence_text,
                                 'uuid': '',
@@ -983,7 +983,7 @@ class OpenStaxXMLParser:
                     logger.warning(f"Section {section_id} missing title! Section data: {section_data}")
                 
                 # Create namespaced section ID
-                namespaced_section_id = f"{clean_book_id}_{section_id}"
+                namespaced_section_id = f"{clean_book_id}-{section_id}"
                 
                 section_node_data = {
                     'section_id': namespaced_section_id,
@@ -1019,7 +1019,7 @@ class OpenStaxXMLParser:
                             logger.warning(f"Subsection {subsection_id} missing title! Subsection data: {content_item}")
                         
                         # Create namespaced subsection ID
-                        namespaced_subsection_id = f"{clean_book_id}_{subsection_id}"
+                        namespaced_subsection_id = f"{clean_book_id}-{subsection_id}"
                         
                         subsection_data = {
                             'subsection_id': namespaced_subsection_id,
@@ -1040,7 +1040,7 @@ class OpenStaxXMLParser:
                             if subsection_content['type'] == 'paragraph':
                                 # Create namespaced paragraph ID
                                 original_paragraph_id = subsection_content['paragraph_id']
-                                namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
+                                namespaced_paragraph_id = f"{clean_book_id}-{original_paragraph_id}"
                                 
                                 paragraph_data = {
                                     'paragraph_id': namespaced_paragraph_id,
@@ -1059,7 +1059,7 @@ class OpenStaxXMLParser:
                                 # Create sentence nodes
                                 for i, sentence_text in enumerate(subsection_content.get('sentences', [])):
                                     sentence_data = {
-                                        'sentence_id': f"{namespaced_paragraph_id}_sent_{i}",
+                                        'sentence_id': f"{namespaced_paragraph_id}-sent-{i}",
                                         'paragraph_id': namespaced_paragraph_id,
                                         'text': sentence_text,
                                         'uuid': '',
@@ -1075,7 +1075,7 @@ class OpenStaxXMLParser:
                     elif content_item['type'] == 'paragraph':
                         # Create namespaced paragraph ID
                         original_paragraph_id = content_item['paragraph_id']
-                        namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
+                        namespaced_paragraph_id = f"{clean_book_id}-{original_paragraph_id}"
                         
                         paragraph_data = {
                             'paragraph_id': namespaced_paragraph_id,
@@ -1094,7 +1094,7 @@ class OpenStaxXMLParser:
                         # Create sentence nodes
                         for i, sentence_text in enumerate(content_item.get('sentences', [])):
                             sentence_data = {
-                                'sentence_id': f"{namespaced_paragraph_id}_sent_{i}",
+                                'sentence_id': f"{namespaced_paragraph_id}-sent-{i}",
                                 'paragraph_id': namespaced_paragraph_id,
                                 'text': sentence_text,
                                 'uuid': '',
@@ -1125,7 +1125,7 @@ class OpenStaxXMLParser:
             elif section_data['type'] == 'paragraph':
                 # Create namespaced paragraph ID for standalone paragraphs
                 original_paragraph_id = section_data['paragraph_id']
-                namespaced_paragraph_id = f"{clean_book_id}_{original_paragraph_id}"
+                namespaced_paragraph_id = f"{clean_book_id}-{original_paragraph_id}"
                 
                 paragraph_data = {
                     'paragraph_id': namespaced_paragraph_id,
@@ -1144,7 +1144,7 @@ class OpenStaxXMLParser:
                 # Create sentence nodes
                 for i, sentence_text in enumerate(section_data.get('sentences', [])):
                     sentence_data = {
-                        'sentence_id': f"{namespaced_paragraph_id}_sent_{i}",
+                            'sentence_id': f"{namespaced_paragraph_id}-sent-{i}",
                         'paragraph_id': namespaced_paragraph_id,
                         'text': sentence_text,
                         'uuid': '',
@@ -1269,14 +1269,14 @@ class OpenStaxXMLParser:
         relationships = []
         
         # Convert book_id to clean format for namespaced ID
-        clean_book_id = book_id.replace('-', '_').replace(' ', '_').lower()
+        clean_book_id = book_id.replace(' ', '-').lower()
         
         for i, concept_text in enumerate(concepts):
             if not concept_text.strip():
                 continue
                 
             # Create namespaced concept ID
-            concept_id = f"{clean_book_id}_concept_{sentence_id}_{i}"
+            concept_id = f"{clean_book_id}-concept-{sentence_id}-{i}"
             
             concept_data = {
                 'concept_id': concept_id,

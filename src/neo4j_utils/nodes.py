@@ -238,7 +238,19 @@ class Neo4jNodeCreator:
             return False
     
     def create_concept(self, concept_data: Dict[str, Any]) -> bool:
-        """Create a Concept node."""
+        """Create a Concept node.
+        
+        WARNING: This method creates concept nodes WITHOUT relationships, which can lead to orphaned concepts.
+        Use create_concept_with_relationship() instead to ensure proper relationship creation.
+        """
+        import warnings
+        warnings.warn(
+            "create_concept() creates orphaned concept nodes without relationships. "
+            "Use create_concept_with_relationship() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         try:
             with self.driver.session(database=self.database) as session:
                 query = """
@@ -253,7 +265,7 @@ class Neo4jNodeCreator:
                 })
                 """
                 session.run(query, concept_data)
-                print(f"Created Concept: {concept_data.get('text', 'Unknown')}")
+                print(f"WARNING: Created orphaned Concept: {concept_data.get('text', 'Unknown')}")
                 return True
         except Exception as e:
             print(f"Error creating Concept: {e}")
@@ -292,6 +304,14 @@ class Neo4jNodeCreator:
                             if self.create_sentence(node_data):
                                 success_count += 1
                         elif node_type == "Concept":
+                            # Prevent orphaned concept creation in batch operations
+                            import warnings
+                            warnings.warn(
+                                f"Batch creation of Concept nodes without relationships is deprecated. "
+                                f"Concept nodes should be created with relationships to prevent orphaned nodes.",
+                                DeprecationWarning,
+                                stacklevel=3
+                            )
                             if self.create_concept(node_data):
                                 success_count += 1
                     except Exception as e:

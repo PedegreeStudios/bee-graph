@@ -16,9 +16,9 @@ class ConceptManager:
         """Get sentences that don't have concept relationships."""
         query = """
         MATCH (s:Sentence)
-        WHERE NOT (s)-[:SENTENCE_HAS_CONCEPT]->(:Concept)
+        WHERE NOT (s)-[:SENTENCE_CONTAINS_CONCEPT]->(:Concept)
         AND s.text IS NOT NULL
-        RETURN elementId(s) as sentence_id, 
+        RETURN s.sentence_id as sentence_id, 
                s.text as content
         LIMIT $limit
         """
@@ -31,9 +31,9 @@ class ConceptManager:
         """Get ALL sentences that don't have concept relationships."""
         query = """
         MATCH (s:Sentence)
-        WHERE NOT (s)-[:SENTENCE_HAS_CONCEPT]->(:Concept)
+        WHERE NOT (s)-[:SENTENCE_CONTAINS_CONCEPT]->(:Concept)
         AND s.text IS NOT NULL
-        RETURN elementId(s) as sentence_id, 
+        RETURN s.sentence_id as sentence_id, 
                s.text as content
         """
         
@@ -44,9 +44,16 @@ class ConceptManager:
     def create_concept_with_relationship(self, sentence_id: str, wikidata_entity) -> bool:
         """Create concept node and establish bidirectional relationship with sentence."""
         query = """
-        // Create or merge the concept node
+        // First, verify the sentence exists
+        MATCH (s:Sentence {sentence_id: $sentence_id})
+        
+        // Only proceed if sentence exists
+        WITH s
+        
+        // Create or merge the concept node (use wikidata_id as unique identifier)
         MERGE (c:Concept {wikidata_id: $wikidata_id})
         ON CREATE SET 
+            c.name = $name,
             c.wikidata_name = $wikidata_name,
             c.label = $label,
             c.description = $description,
@@ -54,18 +61,19 @@ class ConceptManager:
             c.wikidata_url = $wikidata_url,
             c.created_at = datetime()
         ON MATCH SET
+            c.name = $name,
+            c.wikidata_name = $wikidata_name,
+            c.label = $label,
+            c.description = $description,
+            c.aliases = $aliases,
+            c.wikidata_url = $wikidata_url,
             c.updated_at = datetime()
         
-        // Get the sentence node
-        WITH c
-        MATCH (s)
-        WHERE elementId(s) = $sentence_id
-        
         // Create bidirectional relationships
-        MERGE (s)-[r1:SENTENCE_HAS_CONCEPT]->(c)
+        MERGE (s)-[r1:SENTENCE_CONTAINS_CONCEPT]->(c)
         ON CREATE SET r1.created_at = datetime()
         
-        MERGE (c)-[r2:CONCEPT_IN_SENTENCE]->(s)
+        MERGE (c)-[r2:CONCEPT_BELONGS_TO_SENTENCE]->(s)
         ON CREATE SET r2.created_at = datetime()
         
         RETURN c.wikidata_id as created_concept_id
@@ -76,6 +84,7 @@ class ConceptManager:
                 result = session.run(
                     query,
                     sentence_id=sentence_id,
+                    name=wikidata_entity.label,
                     wikidata_id=wikidata_entity.qid,
                     wikidata_name=wikidata_entity.label,
                     label=wikidata_entity.label,
@@ -105,7 +114,7 @@ class ConceptManager:
     def get_sentences_with_concepts_count(self) -> int:
         """Get count of sentences that have concept relationships."""
         query = """
-        MATCH (s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(:Concept)
+        MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(:Concept)
         RETURN count(DISTINCT s) as total
         """
         
@@ -113,3 +122,20 @@ class ConceptManager:
             result = session.run(query)
             record = result.single()  # Get the single record from the result
             return record['total'] if record else 0
+    
+    def cleanup_orphaned_concepts(self) -> int:
+        """Remove concept nodes that have no relationships to sentences."""
+        query = """
+        MATCH (c:Concept)
+        WHERE NOT (c)-[:CONCEPT_BELONGS_TO_SENTENCE]->(:Sentence)
+        AND NOT (c)<-[:SENTENCE_CONTAINS_CONCEPT]-(:Sentence)
+        DETACH DELETE c
+        RETURN count(c) as deleted_count
+        """
+        
+        with self.driver.session() as session:
+            result = session.run(query)
+            record = result.single()
+            deleted_count = record['deleted_count'] if record else 0
+            logger.info(f"Cleaned up {deleted_count} orphaned concept nodes")
+            return deleted_count
