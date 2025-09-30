@@ -415,7 +415,7 @@ class SequentialCollectionProcessor:
                 processed_count += 1
                 
                 # Log progress every 100 entities
-                if processed_count % 100 == 0:
+                if processed_count % 1000 == 0:
                     percentage = (processed_count / total_count * 100) if total_count > 0 else 0
                     logger.info(f"  Processed {processed_count}/{total_count} entities ({percentage:.1f}%)")
                 
@@ -445,14 +445,15 @@ class SequentialCollectionProcessor:
         return stats
     
     def _process_uncached_entities(self, sentences_data: Dict[str, Any], collection_name: str, total_count: int) -> Dict[str, int]:
-        """Process entities that are not in cache using API calls.
+        """Process entities with deduplication - single API call per unique entity.
         
-        This method only processes entities with status 'needs_api_lookup'.
-        Entities with 'null_no_api_value' status are skipped as they already failed lookup.
+        This optimized method processes each unique entity only once, then updates
+        all sentences containing that entity in batch operations.
         
         Args:
             sentences_data: Dictionary with sentence data
             collection_name: Name of the collection
+            total_count: Total count for progress tracking (legacy parameter)
             
         Returns:
             Dictionary with processing statistics
@@ -463,56 +464,189 @@ class SequentialCollectionProcessor:
             'api_calls': 0
         }
         
+        # Step 1: Collect unique entities that need API lookup
+        unique_entities = self._collect_unique_uncached_entities(sentences_data)
+        logger.info(f"Found {len(unique_entities)} unique entities for API processing")
+        
         processed_count = 0
         
-        for sentence_id, sentence_data in sentences_data.items():
-            # Skip if already processed
+        # Step 2: Process each unique entity once
+        for entity_name in unique_entities:
+            # Make single API call
+            wikidata_entity = self.wikidata_client.search_entity(entity_name)
+            stats['api_calls'] += 1
+            processed_count += 1
+            
+            # Log progress
+            if processed_count % 1000 == 0:
+                percentage = (processed_count / len(unique_entities) * 100)
+                logger.info(f"  Processed {processed_count}/{len(unique_entities)} unique entities ({percentage:.1f}%)")
+            
+            # Step 3: Update ALL sentences containing this entity
+            if wikidata_entity:
+                # Update all sentences with this entity
+                updated_sentences = self._update_all_sentences_with_entity(
+                    sentences_data, entity_name, wikidata_entity
+                )
+                stats['concepts_created'] += updated_sentences
+            else:
+                # Mark all instances as failed
+                self._mark_all_entity_instances_failed(sentences_data, entity_name)
+        
+        logger.info(f"API processing: {stats['api_calls']} calls, {stats['concepts_created']} concepts created")
+        return stats
+    
+    def _collect_unique_uncached_entities(self, sentences_data: Dict[str, Any]) -> set:
+        """Collect unique entity names that need API lookup.
+        
+        Args:
+            sentences_data: Dictionary with sentence data
+            
+        Returns:
+            Set of unique entity names that need API lookup
+        """
+        unique_entities = set()
+        
+        for sentence_data in sentences_data.values():
             if sentence_data['status'] == 'processed':
                 continue
                 
             entities = sentence_data['entities']
-            
             for entity_name, entity_data in entities.items():
-                # Skip entities that already have wikidata_id (already processed)
-                if entity_data.get('wikidata_id'):
-                    continue
-                    
-                # Skip if already processed (cached)
-                if entity_data['status'] == 'cache_hit':
-                    continue
-                    
-                # Skip entities that already failed lookup (null cache entries)
-                if entity_data['status'] == 'null_no_api_value':
-                    continue
-                    
-                # Skip if not ready for API lookup
-                if entity_data['status'] != 'needs_api_lookup':
-                    continue
+                # Only collect entities that need API lookup
+                if (entity_data['status'] == 'needs_api_lookup' and 
+                    not entity_data.get('wikidata_id')):
+                    unique_entities.add(entity_name)
+        
+        return unique_entities
+    
+    def _update_all_sentences_with_entity(self, sentences_data: Dict[str, Any], 
+                                        entity_name: str, wikidata_entity) -> int:
+        """Update all sentences containing the entity and commit to database.
+        
+        Args:
+            sentences_data: Dictionary with sentence data
+            entity_name: Name of the entity to update
+            wikidata_entity: WikidataEntity object with lookup results
+            
+        Returns:
+            Number of sentences updated
+        """
+        sentence_ids_to_update = []
+        
+        # Step 1: Find all sentences containing this entity
+        for sentence_id, sentence_data in sentences_data.items():
+            if sentence_data['status'] == 'processed':
+                continue
                 
-                # Make API call
-                wikidata_entity = self.wikidata_client.search_entity(entity_name)
-                stats['api_calls'] += 1
-                processed_count += 1
+            entities = sentence_data['entities']
+            if entity_name in entities:
+                entity_data = entities[entity_name]
                 
-                # Log progress every 10 entities
-                if processed_count % 100 == 0:
-                    percentage = (processed_count / total_count * 100) if total_count > 0 else 0
-                    logger.info(f"  Processed {processed_count}/{total_count} entities ({percentage:.1f}%)")
-                
-                if wikidata_entity:
-                    # API lookup successful
+                # Only update if still needs API lookup
+                if (entity_data['status'] == 'needs_api_lookup' and 
+                    not entity_data.get('wikidata_id')):
+                    
+                    # Update entity data
                     entity_data['status'] = 'api_lookup_complete'
                     entity_data['wikidata_id'] = wikidata_entity.qid
                     
-                    # Write to Neo4j immediately
-                    if self.concept_manager.create_concept_with_relationship(sentence_id, wikidata_entity):
-                        stats['concepts_created'] += 1
-                else:
-                    # API lookup failed
-                    entity_data['status'] = 'api_lookup_failed'
+                    sentence_ids_to_update.append(sentence_id)
         
-        logger.info(f"API processing: {stats['api_calls']} calls, {stats['concepts_created']} concepts created")
-        return stats
+        # Step 2: Batch commit to database
+        if sentence_ids_to_update:
+            return self._batch_create_concepts(sentence_ids_to_update, wikidata_entity)
+        
+        return 0
+    
+    def _batch_create_concepts(self, sentence_ids: List[str], wikidata_entity) -> int:
+        """Batch create concept relationships for multiple sentences.
+        
+        Args:
+            sentence_ids: List of sentence IDs to create concepts for
+            wikidata_entity: WikidataEntity object
+            
+        Returns:
+            Number of relationships created
+        """
+        if not sentence_ids:
+            return 0
+        
+        # Use a single transaction for all sentences
+        query = """
+        // Create or merge the concept node once
+        MERGE (c:Concept {wikidata_id: $wikidata_id})
+        ON CREATE SET 
+            c.name = $name,
+            c.wikidata_name = $wikidata_name,
+            c.label = $label,
+            c.description = $description,
+            c.aliases = $aliases,
+            c.wikidata_url = $wikidata_url,
+            c.created_at = datetime()
+        ON MATCH SET
+            c.name = $name,
+            c.wikidata_name = $wikidata_name,
+            c.label = $label,
+            c.description = $description,
+            c.aliases = $aliases,
+            c.wikidata_url = $wikidata_url,
+            c.updated_at = datetime()
+        
+        // Create relationships for all sentences at once
+        WITH c
+        UNWIND $sentence_ids as sentence_id
+        MATCH (s:Sentence {sentence_id: sentence_id})
+        
+        // Create bidirectional relationships
+        MERGE (s)-[r1:SENTENCE_CONTAINS_CONCEPT]->(c)
+        ON CREATE SET r1.created_at = datetime()
+        
+        MERGE (c)-[r2:CONCEPT_BELONGS_TO_SENTENCE]->(s)
+        ON CREATE SET r2.created_at = datetime()
+        
+        RETURN count(DISTINCT s) as relationships_created
+        """
+        
+        try:
+            with self.driver.session(database=self.neo4j_database) as session:
+                result = session.run(query, {
+                    'wikidata_id': wikidata_entity.qid,
+                    'name': wikidata_entity.label,
+                    'wikidata_name': wikidata_entity.label,
+                    'label': wikidata_entity.label,
+                    'description': wikidata_entity.description,
+                    'aliases': wikidata_entity.aliases,
+                    'wikidata_url': wikidata_entity.wikidata_url,
+                    'sentence_ids': sentence_ids
+                })
+                
+                record = result.single()
+                return record['relationships_created'] if record else 0
+                
+        except Exception as e:
+            logger.error(f"Error batch creating concepts for {len(sentence_ids)} sentences: {e}")
+            return 0
+    
+    def _mark_all_entity_instances_failed(self, sentences_data: Dict[str, Any], entity_name: str) -> None:
+        """Mark all instances of a failed entity lookup.
+        
+        Args:
+            sentences_data: Dictionary with sentence data
+            entity_name: Name of the entity that failed lookup
+        """
+        for sentence_data in sentences_data.values():
+            if sentence_data['status'] == 'processed':
+                continue
+                
+            entities = sentence_data['entities']
+            if entity_name in entities:
+                entity_data = entities[entity_name]
+                
+                # Only update if still needs API lookup
+                if (entity_data['status'] == 'needs_api_lookup' and 
+                    not entity_data.get('wikidata_id')):
+                    entity_data['status'] = 'api_lookup_failed'
     
     def _count_uncached_entities(self, sentences_data: Dict[str, Any]) -> int:
         """Count entities that need API lookup (only needs_api_lookup status without wikidata_id).
