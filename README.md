@@ -154,10 +154,10 @@ graph TD
     Section -->|SECTION_CONTAINS_PARAGRAPH| Paragraph
     Subsection -->|SUBSECTION_CONTAINS_PARAGRAPH| Paragraph
     Paragraph -->|PARAGRAPH_CONTAINS_SENTENCE| Sentence
-    Sentence -->|SENTENCE_HAS_CONCEPT| Concept
+    Sentence -->|SENTENCE_CONTAINS _CONCEPT| Concept
 
     %% Bottom-Up BELONGS_TO Relationships
-    Concept -.->|CONCEPT_IN_SENTENCE| Sentence
+    Concept -.->|CONCEPT_BELONGS_IN_SENTENCE| Sentence
     Sentence -.->|SENTENCE_BELONGS_TO_PARAGRAPH| Paragraph
     Paragraph -.->|PARAGRAPH_BELONGS_TO_SUBSECTION| Subsection
     Paragraph -.->|PARAGRAPH_BELONGS_TO_SECTION| Section

@@ -135,54 +135,70 @@ class GraphRAGPipeline:
 - **Concept**: Knowledge concepts with properties: concept_id, wikidata_id, wikidata_name, title, label, description, aliases, wikidata_url, lens, uuid, created_at, updated_at
 
 ### Relationship Types:
-**Hierarchical Structure (Contains):**
+**Hierarchical Structure (Contains - Top-Down):**
 - BOOK_CONTAINS_CHAPTER
 - CHAPTER_CONTAINS_SUBCHAPTER
+- CHAPTER_CONTAINS_DOCUMENT
 - SUBCHAPTER_CONTAINS_DOCUMENT
 - DOCUMENT_CONTAINS_SECTION
+- DOCUMENT_CONTAINS_SUBSECTION
 - DOCUMENT_CONTAINS_PARAGRAPH
 - SECTION_CONTAINS_SUBSECTION
 - SECTION_CONTAINS_PARAGRAPH
 - SUBSECTION_CONTAINS_PARAGRAPH
 - PARAGRAPH_CONTAINS_SENTENCE
 
-**Hierarchical Structure (Belongs To):**
+**Hierarchical Structure (Belongs To - Bottom-Up):**
 - SENTENCE_BELONGS_TO_PARAGRAPH
-- PARAGRAPH_BELONGS_TO_DOCUMENT
-- PARAGRAPH_BELONGS_TO_SECTION
 - PARAGRAPH_BELONGS_TO_SUBSECTION
+- PARAGRAPH_BELONGS_TO_SECTION
+- PARAGRAPH_BELONGS_TO_DOCUMENT
 - SUBSECTION_BELONGS_TO_SECTION
+- SUBSECTION_BELONGS_TO_DOCUMENT
 - SECTION_BELONGS_TO_DOCUMENT
 - DOCUMENT_BELONGS_TO_SUBCHAPTER
+- DOCUMENT_BELONGS_TO_CHAPTER
+- DOCUMENT_BELONGS_TO_BOOK
 - SUBCHAPTER_BELONGS_TO_CHAPTER
 - CHAPTER_BELONGS_TO_BOOK
 
 **Semantic Relationships:**
-- SENTENCE_HAS_CONCEPT
-- CONCEPT_IN_SENTENCE
+- SENTENCE_CONTAINS_CONCEPT
+- CONCEPT_BELONGS_TO_SENTENCE
+
+**⚠️ CRITICAL RELATIONSHIP NAMES - DO NOT CHANGE:**
+- Use "SENTENCE_CONTAINS_CONCEPT" NOT "SENTENCE_HAS_CONCEPT"
+- Use "CONCEPT_BELONGS_TO_SENTENCE" NOT "CONCEPT_IN_SENTENCE"
 
 ## QUERY PATTERNS
 
 ### Common Query Types:
 1. **Find content**: "Show me all books about X" → MATCH (b:Book) WHERE b.title CONTAINS "X"
 2. **Navigate hierarchy**: "Get chapters in book Y" → MATCH (b:Book)-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter) WHERE b.title CONTAINS "Y"
-3. **Find concepts**: "What concepts are mentioned in document Z" → MATCH (d:Document)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE d.title CONTAINS "Z"
+3. **Find concepts**: "What concepts are mentioned in sentences containing 'carbon'" → MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE c.wikidata_name CONTAINS 'carbon'
 4. **Search by properties**: Use CONTAINS for text matching
 5. **Count/aggregate**: Use COUNT(), COLLECT() for summaries
+
+### Concept Search Guidelines:
+- **PRIORITY**: Always search concepts using `c.wikidata_name` as the primary field
+- **Secondary fields**: Use `c.description` as a fallback for broader concept matching
+- **Avoid**: Using `c.label` for concept searches as it may be less reliable
+- **Return**: Always include `c.wikidata_name` and `c.wikidata_id` in concept queries
 
 ### Navigation Rules:
 **Flexible Hierarchy Structure:**
 - Books contain chapters, chapters contain subchapters
-- Subchapters can contain documents directly
-- Documents can contain sections and/or paragraphs directly
+- Both chapters and subchapters can contain documents directly
+- Documents can contain sections, subsections, and/or paragraphs directly
 - Sections can contain subsections and/or paragraphs directly
 - Subsections contain paragraphs, paragraphs contain sentences
 - Sentences belong to paragraphs, paragraphs can belong to documents, sections, or subsections
 - All levels have reverse "BELONGS_TO" relationships for upward navigation
-- Sentences are linked to concepts via SENTENCE_HAS_CONCEPT and CONCEPT_IN_SENTENCE
+- Sentences are linked to concepts via SENTENCE_CONTAINS_CONCEPT and CONCEPT_BELONGS_TO_SENTENCE
 
 **Key Points:**
-- The hierarchy is flexible - paragraphs can belong directly to documents or sections, bypassing subsections
+- The hierarchy is flexible - documents can be contained by chapters OR subchapters
+- Paragraphs can belong directly to documents, sections, or subsections
 - Use both "CONTAINS" and "BELONGS_TO" relationships for comprehensive traversal
 - Documents can exist at multiple levels in the hierarchy
 
@@ -197,9 +213,11 @@ class GraphRAGPipeline:
 7. **Handle case sensitivity** with toLower() if needed
 8. **CRITICAL**: Always include ID fields for hierarchy tracing in RETURN statements:
    - For Sentence nodes: ALWAYS include `s.sentence_id`
-   - For Concept nodes: ALWAYS include `c.wikidata_id`
+   - For Concept nodes: ALWAYS include `c.wikidata_id` and `c.wikidata_name`
    - For other nodes: include their respective ID fields
    - Without these ID fields, the system cannot trace the hierarchy
+9. **CONCEPT SEARCH PRIORITY**: When searching for concepts, always use `c.wikidata_name` as the primary search field, not `c.label`
+10. **RELATIONSHIP NAME WARNING**: NEVER use "SENTENCE_HAS_CONCEPT" or "CONCEPT_IN_SENTENCE". Always use "SENTENCE_CONTAINS_CONCEPT" and "CONCEPT_BELONGS_TO_SENTENCE"
 
 ## EXAMPLES
 
@@ -210,16 +228,16 @@ class GraphRAGPipeline:
 **Cypher**: `MATCH (b:Book)-[:BOOK_CONTAINS_CHAPTER]->(c:Chapter) WHERE b.title CONTAINS 'Introduction to AI' RETURN c.title, c.order ORDER BY c.order`
 
 **User**: "What concepts are mentioned in sentences containing 'machine learning'"
-**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE s.text CONTAINS 'machine learning' RETURN DISTINCT c.label, c.description, c.wikidata_id, s.sentence_id`
+**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE s.text CONTAINS 'machine learning' RETURN DISTINCT c.wikidata_name, c.description, c.wikidata_id, s.sentence_id`
 
 **User**: "Find sentences about bones and their concepts"
-**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE s.text CONTAINS 'bones' RETURN s.text, s.sentence_id, c.label, c.wikidata_id`
+**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE s.text CONTAINS 'bones' RETURN s.text, s.sentence_id, c.wikidata_name, c.wikidata_id`
 
 **User**: "Count how many paragraphs are in each subsection"
 **Cypher**: `MATCH (ss:Subsection)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p:Paragraph) RETURN ss.title, COUNT(p) as paragraph_count ORDER BY paragraph_count DESC`
 
 **User**: "Find documents that mention concepts related to 'artificial intelligence'"
-**Cypher**: `MATCH (d:Document)-[:DOCUMENT_CONTAINS_SECTION]->(sec:Section)-[:SECTION_CONTAINS_SUBSECTION]->(ss:Subsection)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence)-[:SENTENCE_HAS_CONCEPT]->(c:Concept) WHERE c.label CONTAINS 'artificial intelligence' OR c.description CONTAINS 'artificial intelligence' RETURN DISTINCT d.title, d.document_id`
+**Cypher**: `MATCH (d:Document)-[:DOCUMENT_CONTAINS_SECTION]->(sec:Section)-[:SECTION_CONTAINS_SUBSECTION]->(ss:Subsection)-[:SUBSECTION_CONTAINS_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_CONTAINS_SENTENCE]->(s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE c.wikidata_name CONTAINS 'artificial intelligence' OR c.description CONTAINS 'artificial intelligence' RETURN DISTINCT d.title, d.document_id`
 
 **User**: "Find paragraphs that belong directly to documents (not in sections)"
 **Cypher**: `MATCH (d:Document)-[:DOCUMENT_CONTAINS_PARAGRAPH]->(p:Paragraph) RETURN d.title, p.paragraph_id`
@@ -229,6 +247,12 @@ class GraphRAGPipeline:
 
 **User**: "Trace hierarchy from sentence back to book"
 **Cypher**: `MATCH (s:Sentence)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p:Paragraph)-[:PARAGRAPH_BELONGS_TO_DOCUMENT|PARAGRAPH_BELONGS_TO_SECTION|PARAGRAPH_BELONGS_TO_SUBSECTION*]->(d:Document)-[:DOCUMENT_BELONGS_TO_SUBCHAPTER]->(sc:Subchapter)-[:SUBCHAPTER_BELONGS_TO_CHAPTER]->(c:Chapter)-[:CHAPTER_BELONGS_TO_BOOK]->(b:Book) WHERE s.sentence_id = 'specific_sentence_id' RETURN b.title, c.title, sc.title, d.title`
+
+**User**: "Find concepts related to carbon"
+**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE c.wikidata_name CONTAINS 'carbon' RETURN DISTINCT c.wikidata_name, c.label, s.text, s.sentence_id`
+
+**User**: "Find all sentences that contain concepts about biology"
+**Cypher**: `MATCH (s:Sentence)-[:SENTENCE_CONTAINS_CONCEPT]->(c:Concept) WHERE c.wikidata_name CONTAINS 'biology' OR c.description CONTAINS 'biology' RETURN s.text, s.sentence_id, c.wikidata_name, c.wikidata_id`
 
 Now convert this user request into a Cypher query:
 

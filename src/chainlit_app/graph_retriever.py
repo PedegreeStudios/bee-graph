@@ -495,7 +495,7 @@ class GraphRetriever:
         elif node_type == 'Concept':
             return """
             MATCH (concept:Concept {wikidata_id: $node_id})
-            OPTIONAL MATCH (concept)-[:CONCEPT_IN_SENTENCE]->(s:Sentence)
+            OPTIONAL MATCH (concept)-[:CONCEPT_BELONGS_TO_SENTENCE]->(s:Sentence)
             OPTIONAL MATCH (s)-[:SENTENCE_BELONGS_TO_PARAGRAPH]->(p:Paragraph)
             OPTIONAL MATCH (p)-[:PARAGRAPH_BELONGS_TO_SUBSECTION]->(ss:Subsection)
             OPTIONAL MATCH (p)-[:PARAGRAPH_BELONGS_TO_SECTION]->(sec:Section)

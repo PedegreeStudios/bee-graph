@@ -336,6 +336,8 @@ def main():
             - What concepts are mentioned in sentences containing "machine learning"
             - Find documents that mention "artificial intelligence"
             - Show concepts related to "neural networks"
+            - Find concepts related to "carbon"
+            - Show all sentences that contain concepts about "biology"
             
             **Aggregation Queries:**
             - Count paragraphs per document
@@ -371,26 +373,52 @@ def main():
         
         with st.expander("Relationship Types"):
             st.markdown("""
-            **Available Relationship Types:**
-            - **BOOK_CONTAINS_CHAPTER** (relationship: "BOOK_CONTAINS_CHAPTER")
-            - **CHAPTER_CONTAINS_SUBCHAPTER** (relationship: "CHAPTER_CONTAINS_SUBCHAPTER")
-            - **DOCUMENT_CONTAINS_SECTION** (relationship: "DOCUMENT_CONTAINS_SECTION")
-            - **SECTION_CONTAINS_SUBSECTION** (relationship: "SECTION_CONTAINS_SUBSECTION")
-            - **SUBSECTION_CONTAINS_PARAGRAPH** (relationship: "SUBSECTION_CONTAINS_PARAGRAPH")
-            - **PARAGRAPH_CONTAINS_SENTENCE** (relationship: "PARAGRAPH_CONTAINS_SENTENCE")
-            - **SENTENCE_BELONGS_TO_PARAGRAPH** (relationship: "SENTENCE_BELONGS_TO_PARAGRAPH")
-            - **PARAGRAPH_BELONGS_TO_SUBSECTION** (relationship: "PARAGRAPH_BELONGS_TO_SUBSECTION")
-            - **SUBSECTION_BELONGS_TO_SECTION** (relationship: "SUBSECTION_BELONGS_TO_SECTION")
+            **Hierarchical Structure (Contains - Top-Down):**
+            - **BOOK_CONTAINS_CHAPTER**
+            - **CHAPTER_CONTAINS_SUBCHAPTER**
+            - **CHAPTER_CONTAINS_DOCUMENT**
+            - **SUBCHAPTER_CONTAINS_DOCUMENT**
+            - **DOCUMENT_CONTAINS_SECTION**
+            - **DOCUMENT_CONTAINS_SUBSECTION**
+            - **DOCUMENT_CONTAINS_PARAGRAPH**
+            - **SECTION_CONTAINS_SUBSECTION**
+            - **SECTION_CONTAINS_PARAGRAPH**
+            - **SUBSECTION_CONTAINS_PARAGRAPH**
+            - **PARAGRAPH_CONTAINS_SENTENCE**
             
-            **Hierarchy Structure:**
+            **Hierarchical Structure (Belongs To - Bottom-Up):**
+            - **SENTENCE_BELONGS_TO_PARAGRAPH**
+            - **PARAGRAPH_BELONGS_TO_SUBSECTION**
+            - **PARAGRAPH_BELONGS_TO_SECTION**
+            - **PARAGRAPH_BELONGS_TO_DOCUMENT**
+            - **SUBSECTION_BELONGS_TO_SECTION**
+            - **SUBSECTION_BELONGS_TO_DOCUMENT**
+            - **SECTION_BELONGS_TO_DOCUMENT**
+            - **DOCUMENT_BELONGS_TO_SUBCHAPTER**
+            - **DOCUMENT_BELONGS_TO_CHAPTER**
+            - **DOCUMENT_BELONGS_TO_BOOK**
+            - **SUBCHAPTER_BELONGS_TO_CHAPTER**
+            - **CHAPTER_BELONGS_TO_BOOK**
+            
+            **Semantic Relationships:**
+            - **SENTENCE_CONTAINS_CONCEPT**
+            - **CONCEPT_BELONGS_TO_SENTENCE**
+            
+            **Flexible Hierarchy Structure:**
             ```
             Book → Chapter → Subchapter
+                      ↓         ↓
+                   Document ← Document
                       ↓
-                   Document → Section → Subsection → Paragraph → Sentence
+            Section → Subsection → Paragraph → Sentence
+               ↓         ↓           ↓
+            Paragraph  Paragraph    Concept
             ```
             
-            **Additional Relationships:**
-            - SENTENCE_HAS_CONCEPT, CONCEPT_IN_SENTENCE
+            **Key Points:**
+            - Documents can be contained by chapters OR subchapters
+            - Paragraphs can belong directly to documents, sections, or subsections
+            - Both "CONTAINS" and "BELONGS_TO" relationships exist for comprehensive traversal
             """)
     
     # Main content area
