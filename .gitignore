@@ -35,6 +35,7 @@ config/*.json
 *.db
 *.sqlite
 *.sqlite3
+.chainlit/
 
 # Logs
 *.log

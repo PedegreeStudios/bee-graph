@@ -45,7 +45,7 @@ python scripts/setup_database.py --test
 ```
 
 #### Access Neo4j Browser
- Open in your browser: http://20.29.35.132:7474
+ Open in your browser: http://localhost:7474/
 
 
  ### 3. Load and Ingest OpenStax Textbooks 
@@ -154,7 +154,7 @@ graph TD
     Section -->|SECTION_CONTAINS_PARAGRAPH| Paragraph
     Subsection -->|SUBSECTION_CONTAINS_PARAGRAPH| Paragraph
     Paragraph -->|PARAGRAPH_CONTAINS_SENTENCE| Sentence
-    Sentence -->|SENTENCE_CONTAINS _CONCEPT| Concept
+    Sentence -->|SENTENCE_CONTAINS_CONCEPT| Concept
 
     %% Bottom-Up BELONGS_TO Relationships
     Concept -.->|CONCEPT_BELONGS_IN_SENTENCE| Sentence
